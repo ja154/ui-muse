@@ -90,7 +90,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         return (
             <button
                 onClick={() => handleCopy(type)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-black/20 hover:bg-white/10 rounded-md transition-colors border border-brand-border/80"
             >
                 {isCopied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
                 {isCopied ? 'Copied!' : 'Copy'}
@@ -99,57 +99,60 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     };
 
     return (
-        <div className="bg-brand-surface rounded-xl border border-brand-border shadow-lg">
-            <div className="flex justify-between items-center p-4 border-b border-brand-border">
-                <div className="flex items-center gap-2">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                                activeTab === tab.id
-                                    ? 'text-black bg-brand-primary'
-                                    : 'text-brand-muted hover:bg-gray-800/50'
-                            }`}
-                        >
-                            <tab.icon className="w-5 h-5" />
-                            <span>{tab.label}</span>
-                        </button>
-                    ))}
+        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 relative group">
+             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
+            <div className="relative">
+                <div className="flex justify-between items-center p-4 border-b border-brand-border/50">
+                    <div className="flex items-center gap-2">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all duration-300 ${
+                                    activeTab === tab.id
+                                        ? 'text-black bg-brand-primary shadow-[0_0_10px_rgba(0,242,234,0.4)]'
+                                        : 'text-brand-muted hover:bg-white/5'
+                                }`}
+                            >
+                                <tab.icon className="w-5 h-5" />
+                                <span>{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {activeTab === 'prompt' && <CopyButton type="prompt" />}
+                    {activeTab === 'code' && <CopyButton type="code" />}
                 </div>
-                {activeTab === 'prompt' && <CopyButton type="prompt" />}
-                {activeTab === 'code' && <CopyButton type="code" />}
-            </div>
-            <div className="p-6 min-h-[400px]">
-                {activeTab === 'preview' && (
-                    isModifyMode ? (
-                        <HtmlPreviewPanel
+                <div className="p-6 min-h-[400px] animate-fade-in">
+                    {activeTab === 'preview' && (
+                        isModifyMode ? (
+                            <HtmlPreviewPanel
+                                html={htmlOutput}
+                                isLoading={isLoading && !htmlOutput && !errors.html}
+                                error={errors.html || null}
+                            />
+                        ) : (
+                            <PreviewPanelContent
+                                imageUrl={previewImage}
+                                isLoading={isLoading && !previewImage && !errors.image}
+                                error={errors.image || null}
+                            />
+                        )
+                    )}
+                    {activeTab === 'prompt' && !isModifyMode && (
+                        <OutputPanelContent
+                            prompt={generatedPrompt}
+                            isLoading={isLoading && !generatedPrompt && !errors.prompt}
+                            error={errors.prompt || null}
+                        />
+                    )}
+                    {activeTab === 'code' && (
+                        <HtmlOutputPanelContent
                             html={htmlOutput}
                             isLoading={isLoading && !htmlOutput && !errors.html}
                             error={errors.html || null}
                         />
-                    ) : (
-                        <PreviewPanelContent
-                            imageUrl={previewImage}
-                            isLoading={isLoading && !previewImage && !errors.image}
-                            error={errors.image || null}
-                        />
-                    )
-                )}
-                {activeTab === 'prompt' && !isModifyMode && (
-                    <OutputPanelContent
-                        prompt={generatedPrompt}
-                        isLoading={isLoading && !generatedPrompt && !errors.prompt}
-                        error={errors.prompt || null}
-                    />
-                )}
-                {activeTab === 'code' && (
-                    <HtmlOutputPanelContent
-                        html={htmlOutput}
-                        isLoading={isLoading && !htmlOutput && !errors.html}
-                        error={errors.html || null}
-                    />
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -11,15 +11,28 @@
         theme: {
           extend: {
             colors: {
-              'brand-bg': '#121212',
-              'brand-surface': '#1e1e1e',
-              'brand-primary': '#00f2ea',
-              'brand-secondary': '#845ec2',
-              'brand-muted': '#a0aec0',
+              'brand-bg': '#0D0D0D',
+              'brand-surface': '#1A1A1A',
+              'brand-primary': '#00F2EA',
+              'brand-secondary': '#845EC2',
+              'brand-muted': '#A0AEC0',
               'brand-border': '#333333',
+              'brand-glow': 'rgba(0, 242, 234, 0.1)',
             },
             animation: {
               'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.5s ease-in-out forwards',
+              'slide-up': 'slideUp 0.5s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: 0 },
+                '100%': { opacity: 1 },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: 0 },
+                '100%': { transform: 'translateY(0)', opacity: 1 },
+              },
             }
           },
         },
@@ -39,7 +52,8 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-[#0d0d0d] text-gray-400 font-mono min-h-screen">
+  <body class="text-gray-400 font-mono min-h-screen bg-gradient-to-br from-brand-bg to-brand-secondary/20">
+    <div class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#222_1px,transparent_1px)] [background-size:24px_24px]"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

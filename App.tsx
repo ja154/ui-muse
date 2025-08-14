@@ -204,11 +204,11 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="">
+        <div className="animate-fade-in">
             <Header />
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    <div className="lg:col-span-2 flex flex-col gap-6">
+                    <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
                         <InputPanel
                             inputMode={inputMode}
                             setInputMode={setInputMode}
@@ -226,7 +226,7 @@ const App: React.FC = () => {
                         />
                     </div>
 
-                    <div className="lg:col-span-3 flex flex-col gap-8">
+                    <div className="lg:col-span-3 flex flex-col gap-8 animate-slide-up" style={{ animationDelay: '200ms' }}>
                         <OutputTabs
                             previewImage={previewImage}
                             generatedPrompt={generatedPrompt}
@@ -238,7 +238,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
                      <InspirationPanel 
                         links={inspirationLinks}
                         isLoading={isLoading && inspirationLinks.length === 0 && !error.inspiration && inputMode === 'description'}
