@@ -5,8 +5,8 @@ import InputPanel from './components/InputPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
-import { enhancePrompt, generateImagePreview, findInspiration, modifyHtml, generateHtmlFromPrompt } from './services/geminiService.ts';
-import { VisualStyle, HistoryItem, InputMode, InspirationLink } from './types.ts';
+import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt } from './services/geminiService.ts';
+import { VisualStyle, HistoryItem, InputMode, Template } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
     VisualStyle.Minimalist,
@@ -18,6 +18,16 @@ const VISUAL_STYLES: VisualStyle[] = [
     VisualStyle.Playful,
     VisualStyle.Vintage,
 ];
+
+const TEMPLATES: Template[] = [
+    { id: 'login-form', name: 'Minimalist Login Form', prompt: 'A clean, simple login form with email, password fields, and a submit button.', style: VisualStyle.Minimalist },
+    { id: 'product-card', name: 'Cyberpunk Product Card', prompt: 'A futuristic product card with a holographic image placeholder, glowing text, and sharp angles.', style: VisualStyle.Cyberpunk },
+    { id: 'pricing-table', name: 'Corporate Pricing Table', prompt: 'A professional pricing table with three tiers (Basic, Pro, Enterprise), feature lists, and clear call-to-action buttons.', style: VisualStyle.Corporate },
+    { id: 'user-profile', name: 'Playful User Profile', prompt: 'A fun user profile card with a circular avatar, progress bars for stats, and bright, cheerful colors.', style: VisualStyle.Playful },
+    { id: 'nav-bar', name: 'Glassmorphism Nav Bar', prompt: 'A translucent navigation bar with frosted glass effect, containing a logo and several navigation links.', style: VisualStyle.Glassmorphism },
+    { id: 'testimonial-card', name: 'Vintage Testimonial Card', prompt: 'A retro-styled testimonial card featuring a user photo, quote, and name in a classic serif font.', style: VisualStyle.Vintage },
+];
+
 
 const App: React.FC = () => {
     // Input state
@@ -33,11 +43,14 @@ const App: React.FC = () => {
     const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
     const [htmlOutput, setHtmlOutput] = useState<string>('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
-    const [inspirationLinks, setInspirationLinks] = useState<InspirationLink[]>([]);
+    
+    // Template State
+    const [generatedTemplates, setGeneratedTemplates] = useState<Record<string, string>>({});
+    const [templateLoading, setTemplateLoading] = useState<Record<string, boolean>>({});
 
     // App status state
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<{ prompt?: string, image?: string, inspiration?: string, html?: string }>({});
+    const [error, setError] = useState<{ prompt?: string, image?: string, html?: string }>({});
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
     useEffect(() => {
@@ -69,8 +82,36 @@ const App: React.FC = () => {
         setGeneratedPrompt('');
         setHtmlOutput('');
         setPreviewImage(null);
-        setInspirationLinks([]);
     };
+
+    const handleGenerateTemplate = useCallback(async (templateId: string, prompt: string, style: VisualStyle) => {
+        setTemplateLoading(prev => ({ ...prev, [templateId]: true }));
+        try {
+            // Re-use the existing function for generating HTML from a prompt
+            const html = await generateHtmlFromPrompt(`
+                ${prompt}
+                
+                Ensure the generated component is visually complete and styled according to the "${style}" aesthetic.
+            `);
+            setGeneratedTemplates(prev => ({ ...prev, [templateId]: html }));
+        } catch (err) {
+            console.error(`Failed to generate template ${templateId}:`, err);
+            alert(`Sorry, there was an error generating the template for "${prompt}". Please try again.`);
+        } finally {
+            setTemplateLoading(prev => ({ ...prev, [templateId]: false }));
+        }
+    }, []);
+
+    const handleUseTemplate = useCallback((html: string, target: 'base' | 'style') => {
+        setInputMode('modify');
+        if (target === 'base') {
+            setHtmlInput(html);
+        } else {
+            setCloneHtmlInput(html);
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
 
     const handleGenerate = useCallback(async () => {
         resetOutputs();
@@ -83,29 +124,13 @@ const App: React.FC = () => {
             }
 
             let finalPrompt = '';
-            let generatedLinks: InspirationLink[] = [];
             let generatedImage: string | null = null;
             let generatedHtml: string | null = null;
             
             try {
-                const promptPromise = enhancePrompt(userInput, selectedStyle).then(p => {
-                    finalPrompt = p;
-                    setGeneratedPrompt(p);
-                }).catch(err => {
-                    console.error("Prompt Enhancement Error:", err);
-                    setError(prev => ({ ...prev, prompt: 'Failed to enhance prompt.' }));
-                    throw err; // Stop further execution on critical failure
-                });
-
-                const inspirationPromise = findInspiration(userInput, selectedStyle).then(links => {
-                    generatedLinks = links;
-                    setInspirationLinks(links);
-                }).catch(err => {
-                    console.error("Inspiration Error:", err);
-                    setError(prev => ({ ...prev, inspiration: 'Failed to fetch inspiration.' }));
-                });
-
-                await Promise.all([promptPromise, inspirationPromise]);
+                // We no longer fetch inspiration here, just generate the main assets.
+                finalPrompt = await enhancePrompt(userInput, selectedStyle);
+                setGeneratedPrompt(finalPrompt);
                 
                 if (finalPrompt) {
                     const imageGenPromise = generateImagePreview(finalPrompt).then(url => {
@@ -133,13 +158,13 @@ const App: React.FC = () => {
                     style: selectedStyle,
                     output: finalPrompt,
                     previewImage: generatedImage,
-                    inspirationLinks: generatedLinks,
                     htmlOutput: generatedHtml || undefined,
                     inputMode,
                 }, ...prev.slice(0, 19)]);
 
             } catch (err) {
                 console.error("A primary generation task failed in description mode:", err);
+                setError(prev => ({ ...prev, prompt: 'Failed to enhance prompt.' }));
             } finally {
                 setIsLoading(false);
             }
@@ -183,7 +208,6 @@ const App: React.FC = () => {
             setSelectedStyle(item.style || VISUAL_STYLES[0]);
             setGeneratedPrompt(item.output || '');
             setPreviewImage(item.previewImage || null);
-            setInspirationLinks(item.inspirationLinks || []);
             setHtmlOutput(item.htmlOutput || '');
             setHtmlInput('');
             setCloneHtmlInput('');
@@ -191,7 +215,6 @@ const App: React.FC = () => {
             setSelectedStyle(VISUAL_STYLES[0]); // Reset to default
             setGeneratedPrompt('');
             setPreviewImage(null);
-            setInspirationLinks([]);
             setHtmlInput(item.htmlInput || '');
             setCloneHtmlInput(item.cloneHtmlInput || '');
             setHtmlOutput(item.htmlOutput || '');
@@ -239,19 +262,25 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
-                     <InspirationPanel 
-                        links={inspirationLinks}
-                        isLoading={isLoading && inspirationLinks.length === 0 && !error.inspiration && inputMode === 'description'}
-                        error={error.inspiration || null}
-                     />
-                     {history.length > 0 && (
-                        <HistoryPanel 
-                          history={history} 
-                          clearHistory={clearHistory} 
-                          loadHistoryItem={loadFromHistory} 
+                <div className="mt-12 grid grid-cols-1 lg:grid-cols-5 gap-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
+                     <div className="lg:col-span-3">
+                        <InspirationPanel
+                           templates={TEMPLATES}
+                           generatedTemplates={generatedTemplates}
+                           loadingStates={templateLoading}
+                           onGenerate={handleGenerateTemplate}
+                           onUse={handleUseTemplate}
                         />
-                     )}
+                     </div>
+                     <div className="lg:col-span-2">
+                        {history.length > 0 && (
+                            <HistoryPanel 
+                              history={history} 
+                              clearHistory={clearHistory} 
+                              loadHistoryItem={loadFromHistory} 
+                            />
+                        )}
+                     </div>
                 </div>
             </main>
         </div>

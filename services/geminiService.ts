@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { VisualStyle, InspirationLink } from '../types.ts';
+import { VisualStyle } from '../types.ts';
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
@@ -74,47 +74,10 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
     }
 };
 
-export const findInspiration = async (userInput: string, style: VisualStyle): Promise<InspirationLink[]> => {
-    const prompt = `
-Find and briefly describe 4 relevant UI design examples for a "${userInput}" with a "${style}" aesthetic, sourcing from websites like Dribbble, Behance, and Awwwards. The answer should be grounded in search results.
-    `;
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                tools: [{ googleSearch: {} }],
-            },
-        });
-
-        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        
-        if (groundingChunks && groundingChunks.length > 0) {
-            return groundingChunks
-                .filter(chunk => chunk.web && chunk.web.uri && chunk.web.title)
-                .map(chunk => ({
-                    title: chunk.web.title,
-                    uri: chunk.web.uri,
-                }))
-                .slice(0, 4); 
-        }
-
-        console.warn("Inspiration search returned no grounding chunks.");
-        return [];
-
-    } catch (error) {
-        console.error("Error calling Gemini API for inspiration:", error);
-        if (error instanceof Error) {
-            throw new Error(`Gemini API Error: ${error.message}`);
-        }
-        throw new Error("An unknown error occurred while finding inspiration.");
-    }
-};
-
 export const generateHtmlFromPrompt = async (prompt: string): Promise<string> => {
     const metaPrompt = `
-You are an expert front-end developer specializing in Tailwind CSS.
-Your task is to convert a detailed UI/UX prompt into a single, clean, and responsive HTML file using Tailwind CSS.
+You are an expert front-end developer specializing in Tailwind CSS and web accessibility.
+Your task is to convert a detailed UI/UX prompt into a single, clean, accessible, and responsive HTML file using Tailwind CSS.
 
 **PROMPT:**
 ---
@@ -123,11 +86,16 @@ ${prompt}
 
 **INSTRUCTIONS:**
 1.  **Analyze the Prompt:** Read the provided UI prompt carefully to understand the required components, layout, color scheme, typography, and overall aesthetic.
-2.  **Generate HTML with Tailwind CSS:** Create a complete HTML structure for the component or page described.
-3.  **Use Tailwind CSS ONLY:** Apply all styling exclusively through Tailwind CSS classes. Do not use any inline \`style\` attributes or \`<style>\` blocks.
-4.  **Component-Based:** The output should be a self-contained block of HTML that represents the UI. It should not include \`<html>\` or \`<body>\` tags unless it's a full page layout.
-5.  **Placeholders:** Use appropriate placeholders for text and images. For images, use services like placeholder.com (e.g., \`https://via.placeholder.com/150\`).
-6.  **Return Only Code:** Your entire response must be ONLY the raw HTML code block. Do not include any explanations, comments, markdown formatting (like \`\`\`html\`), or conversational text.
+2.  **Accessibility First (CRITICAL):**
+    *   **Semantic HTML:** Use correct semantic HTML5 elements (\`<nav>\`, \`<main>\`, \`<button>\`, \`<article>\`, etc.) instead of generic \`<div>\`s where appropriate.
+    *   **ARIA Roles & Attributes:** Include ARIA attributes (\`role\`, \`aria-label\`, \`aria-labelledby\`, etc.) where necessary to support screen readers, especially for complex or custom components.
+    *   **Keyboard Navigation:** Ensure all interactive elements (buttons, links, inputs) are naturally focusable and usable with a keyboard.
+    *   **Image Alt Text:** All \`<img>\` tags must have a descriptive \`alt\` attribute. For decorative images, use \`alt=""\`.
+3.  **Generate HTML with Tailwind CSS:** Create a complete HTML structure for the component or page described.
+4.  **Use Tailwind CSS ONLY:** Apply all styling exclusively through Tailwind CSS classes. Do not use any inline \`style\` attributes or \`<style>\` blocks.
+5.  **Component-Based:** The output should be a self-contained block of HTML that represents the UI. It should not include \`<html>\` or \`<body>\` tags unless it's a full page layout.
+6.  **Placeholders:** Use appropriate placeholders for text and images. For images, use services like placeholder.com (e.g., \`https://via.placeholder.com/150\`) and ensure they have alt text.
+7.  **Return Only Code:** Your entire response must be ONLY the raw HTML code block. Do not include any explanations, comments, markdown formatting (like \`\`\`html\`), or conversational text.
 `;
 
     try {
@@ -159,26 +127,30 @@ export const modifyHtml = async (
     styleHtml: string
 ): Promise<string> => {
     const metaPrompt = `
-You are an expert front-end developer specializing in Tailwind CSS.
-Your task is to take a user's "original" HTML structure and apply the visual styling from a "style" HTML snippet.
+You are an expert front-end developer specializing in Tailwind CSS and web accessibility (WCAG).
+Your task is to take a user's "original" HTML structure and apply the visual styling from a "style" HTML snippet, while also improving its accessibility.
 
 **GOAL:**
-Remix the original HTML to look and feel like the style HTML. Preserve the semantic structure and content of the original HTML as much as possible, but completely overhaul its appearance using Tailwind CSS classes inspired by the style HTML.
+Remix the original HTML to look and feel like the style HTML. Preserve the semantic structure and content of the original HTML, but completely overhaul its appearance using Tailwind CSS classes inspired by the style HTML, and fixing any accessibility issues.
 
 **RULES:**
-1.  **Analyze Both Inputs:** Carefully analyze the structure, components, and content of the "original" HTML. Separately, analyze the "style" HTML to understand its design language (colors, spacing, typography, borders, shadows, component styles, etc.).
-2.  **Preserve Original Content:** The final output must contain the text, images (if any, using their original src), and semantic structure (headings, lists, etc.) of the "original" HTML. Do not use content from the "style" HTML.
-3.  **Clone the Style:** Apply new Tailwind CSS classes to the original HTML elements to match the aesthetic of the "style" HTML. This includes:
+1.  **Analyze Both Inputs:** Carefully analyze the "original" HTML's structure. Separately, analyze the "style" HTML to understand its design language (colors, spacing, typography, borders, shadows, etc.).
+2.  **Improve Accessibility (CRITICAL):**
+    *   Analyze the "original" HTML for accessibility violations (e.g., \`<div>\`s used as buttons, missing labels, non-semantic tags, missing alt text).
+    *   In the final output, correct these issues by using proper semantic elements (\`<button>\`, \`<nav>\`, etc.) and adding necessary ARIA attributes.
+    *   The goal is a remixed component that is **more accessible** than the original.
+3.  **Preserve Original Content:** The final output must contain the text, images (if any, using their original src), and core meaning of the "original" HTML. Do not use content from the "style" HTML.
+4.  **Clone the Style:** Apply new Tailwind CSS classes to the (now accessible) HTML elements to match the aesthetic of the "style" HTML. This includes:
     -   Color Palette: background colors, text colors, border colors.
     -   Typography: font sizes, weights, and styles.
     -   Sizing & Spacing: padding, margins, widths, heights.
     -   Layout: Flexbox, Grid, and positioning classes.
     -   Borders & Effects: border radius, shadows, etc.
-4.  **Use Tailwind CSS ONLY:** Apply all styling exclusively by adding, removing, or modifying Tailwind CSS classes in the 'class' attribute. Do not write any '<style>' blocks or inline 'style' attributes.
-5.  **Return Only Code:** Your entire response must be the complete, modified HTML code block. Do not include any explanations, comments, or conversational text. Start with the first line of HTML and end with the final closing tag.
+5.  **Use Tailwind CSS ONLY:** Apply all styling exclusively by adding, removing,or modifying Tailwind CSS classes in the 'class' attribute. Do not write any '<style>' blocks or inline 'style' attributes.
+6.  **Return Only Code:** Your entire response must be the complete, modified HTML code block. Do not include any explanations, comments, or conversational text. Start with the first line of HTML and end with the final closing tag.
 
 ---
-**ORIGINAL HTML (Preserve this content and structure):**
+**ORIGINAL HTML (Preserve this content and structure, but fix accessibility):**
 ---
 \`\`\`html
 ${originalHtml}
@@ -191,7 +163,7 @@ ${styleHtml}
 \`\`\`
 ---
 
-Now, transform the "ORIGINAL HTML" to match the "STYLE HTML" using only Tailwind CSS and return the complete, modified HTML.
+Now, transform the "ORIGINAL HTML" to be accessible and match the "STYLE HTML" using only Tailwind CSS. Return the complete, modified HTML.
 `;
 
     try {

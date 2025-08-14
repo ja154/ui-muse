@@ -12,9 +12,11 @@ export enum VisualStyle {
 
 export type InputMode = 'description' | 'modify';
 
-export interface InspirationLink {
-    title: string;
-    uri: string;
+export interface Template {
+    id: string;
+    name: string;
+    prompt: string;
+    style: VisualStyle;
 }
 
 export interface HistoryItem {
@@ -26,7 +28,6 @@ export interface HistoryItem {
     style?: VisualStyle; 
     output?: string; // The enhanced/generated text prompt
     previewImage?: string | null;
-    inspirationLinks?: InspirationLink[];
     
     // --- Modify Mode Specific ---
     htmlInput?: string; // Original HTML for 'modify' mode

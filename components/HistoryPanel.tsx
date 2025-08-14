@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HistoryItem } from '../types.ts';
 import { RestoreIcon, PhotoIcon, CodeBracketIcon } from './icons.tsx';
@@ -39,9 +40,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
     }
 
     return (
-        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 p-6 relative group mt-4 md:mt-0">
+        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 p-6 relative group h-full">
             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
-            <div className="relative">
+            <div className="relative flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-gray-100">History</h2>
                     <button
@@ -51,7 +52,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
                         Clear History
                     </button>
                 </div>
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 -mr-2">
+                <div className="space-y-3 overflow-y-auto pr-2 -mr-2 flex-grow">
                     {history.map((item) => (
                         <div key={item.id} className="p-4 bg-black/20 rounded-lg border border-brand-border/80 flex gap-4 items-start transition-all duration-200 hover:bg-brand-primary/10 hover:border-brand-primary/50 transform hover:-translate-y-1">
                             {getThumbnail(item)}
