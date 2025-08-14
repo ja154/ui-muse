@@ -1,6 +1,6 @@
 {
-  "name": "UI Muse: AI Prompt Enhancer",
-  "description": "An intelligent tool that transforms simple UI descriptions into rich, detailed, and structured prompts for generative AI. Enhance your creative workflow by generating comprehensive design specifications from minimal input.",
+  "name": "JengaUI: AI-Powered UI Builder",
+  "description": "An intelligent tool that helps you build and remix UI components. Describe your idea to generate a UI blueprint, an image preview, and functional HTML with Tailwind CSS, or remix existing code with a new style.",
   "requestFramePermissions": [],
   "prompt": ""
 }

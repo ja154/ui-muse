@@ -1,16 +1,34 @@
-
 import React from 'react';
 import { PhotoIcon } from './icons.tsx';
 
-interface PreviewPanelContentProps {
+type Viewport = 'mobile' | 'tablet' | 'desktop';
+
+interface PreviewPanelProps {
     imageUrl: string | null;
     isLoading: boolean;
     error: string | null;
+    viewport: Viewport;
 }
 
-const PreviewPanelContent: React.FC<PreviewPanelContentProps> = ({ imageUrl, isLoading, error }) => {
+const DeviceFrame: React.FC<{ children: React.ReactNode, device: 'mobile' | 'tablet' }> = ({ children, device }) => {
+    const frameClasses = {
+        mobile: 'w-[395px] h-[797px] p-4 bg-gray-900 border-4 border-gray-700 rounded-[40px] shadow-2xl transition-all duration-300',
+        tablet: 'w-[808px] h-[1064px] p-4 bg-gray-900 border-4 border-gray-700 rounded-[24px] shadow-2xl transition-all duration-300'
+    };
+    const screenClasses = 'bg-black w-full h-full rounded-[20px] overflow-hidden';
+
+    return (
+        <div className={frameClasses[device]}>
+            <div className={screenClasses}>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ imageUrl, isLoading, error, viewport }) => {
     
-    const renderContent = () => {
+    const content = () => {
         if (isLoading) {
              return (
                 <div className="w-full h-full bg-brand-surface border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center animate-pulse-fast">
@@ -34,7 +52,7 @@ const PreviewPanelContent: React.FC<PreviewPanelContentProps> = ({ imageUrl, isL
                 <img 
                     src={imageUrl} 
                     alt="AI Generated UI Preview" 
-                    className="w-full h-full object-cover rounded-lg bg-brand-surface"
+                    className="w-full h-full object-cover bg-brand-surface"
                 />
             );
         }
@@ -46,13 +64,17 @@ const PreviewPanelContent: React.FC<PreviewPanelContentProps> = ({ imageUrl, isL
                 <p className="text-sm">Will appear here after generation</p>
             </div>
         );
+    };
+
+    if (viewport === 'mobile' || viewport === 'tablet') {
+        return <div className="transform scale-[0.6] sm:scale-75 origin-top"><DeviceFrame device={viewport}>{content()}</DeviceFrame></div>
     }
     
     return (
-        <div className="aspect-video w-full">
-            {renderContent()}
+        <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg">
+            {content()}
         </div>
     );
 };
 
-export default PreviewPanelContent;
+export default PreviewPanel;

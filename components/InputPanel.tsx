@@ -38,7 +38,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     const getButtonText = () => {
         if (isLoading) return 'Generating...';
         if (inputMode === 'modify') return 'Remix HTML';
-        return 'Enhance Prompt';
+        return 'Build UI';
     }
     
     const getButtonIcon = () => {

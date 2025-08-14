@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { VisualStyle, InspirationLink } from '../types.ts';
 
@@ -75,9 +76,7 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
 
 export const findInspiration = async (userInput: string, style: VisualStyle): Promise<InspirationLink[]> => {
     const prompt = `
-Based on the user's request for a "${userInput}" with a "${style}" aesthetic, find 4 relevant UI design examples from public inspiration websites like Dribbble, Behance, and Awwwards.
-
-Respond ONLY with a valid JSON array of objects. Each object must have two keys: "title" (a concise description of the design) and "uri" (the direct URL to the design). Do not include any other text, explanations, or markdown formatting like \`\`\`json. Your entire response must be the raw JSON array.
+Find and briefly describe 4 relevant UI design examples for a "${userInput}" with a "${style}" aesthetic, sourcing from websites like Dribbble, Behance, and Awwwards. The answer should be grounded in search results.
     `;
     try {
         const response = await ai.models.generateContent({
@@ -88,34 +87,21 @@ Respond ONLY with a valid JSON array of objects. Each object must have two keys:
             },
         });
 
-        let jsonStr = response.text.trim();
-        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-        const match = jsonStr.match(fenceRegex);
-        if (match && match[2]) {
-            jsonStr = match[2].trim();
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        
+        if (groundingChunks && groundingChunks.length > 0) {
+            return groundingChunks
+                .filter(chunk => chunk.web && chunk.web.uri && chunk.web.title)
+                .map(chunk => ({
+                    title: chunk.web.title,
+                    uri: chunk.web.uri,
+                }))
+                .slice(0, 4); 
         }
 
-        try {
-            const parsedData = JSON.parse(jsonStr);
-            if (Array.isArray(parsedData) && parsedData.every(item => item.title && item.uri)) {
-                return parsedData;
-            } else {
-                console.warn("Parsed JSON from inspiration search has incorrect format.", parsedData);
-                return [];
-            }
-        } catch (e) {
-            console.error("Failed to parse JSON response for inspiration:", e, "Raw response:", jsonStr);
-            const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-            if (groundingChunks && groundingChunks.length > 0) {
-                return groundingChunks
-                    .filter(chunk => chunk.web && chunk.web.uri)
-                    .map(chunk => ({
-                        title: chunk.web.title || new URL(chunk.web.uri).hostname,
-                        uri: chunk.web.uri,
-                    }));
-            }
-            return [];
-        }
+        console.warn("Inspiration search returned no grounding chunks.");
+        return [];
+
     } catch (error) {
         console.error("Error calling Gemini API for inspiration:", error);
         if (error instanceof Error) {

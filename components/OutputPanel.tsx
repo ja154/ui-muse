@@ -44,7 +44,7 @@ const OutputPanelContent: React.FC<OutputPanelContentProps> = ({ prompt, isLoadi
             });
             return <div className="prose prose-invert prose-p:text-gray-300 prose-headings:text-brand-primary">{formattedPrompt}</div>;
         }
-        return <p className="text-brand-muted">Your enhanced prompt will appear here...</p>;
+        return <p className="text-brand-muted">Your UI Blueprint will appear here...</p>;
     };
 
     return (
