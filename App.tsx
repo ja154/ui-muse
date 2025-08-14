@@ -1,11 +1,10 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header.tsx';
 import InputPanel from './components/InputPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
-import { enhancePrompt, generateImagePreview, findInspiration, modifyHtml } from './services/geminiService.ts';
+import { enhancePrompt, generateImagePreview, findInspiration, modifyHtml, generateHtmlFromPrompt } from './services/geminiService.ts';
 import { VisualStyle, HistoryItem, InputMode, InspirationLink } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
@@ -85,6 +84,7 @@ const App: React.FC = () => {
             let finalPrompt = '';
             let generatedLinks: InspirationLink[] = [];
             let generatedImage: string | null = null;
+            let generatedHtml: string | null = null;
             
             try {
                 const promptPromise = enhancePrompt(userInput, selectedStyle).then(p => {
@@ -107,13 +107,23 @@ const App: React.FC = () => {
                 await Promise.all([promptPromise, inspirationPromise]);
                 
                 if (finalPrompt) {
-                    await generateImagePreview(finalPrompt).then(url => {
+                    const imageGenPromise = generateImagePreview(finalPrompt).then(url => {
                         generatedImage = url;
                         setPreviewImage(url);
                     }).catch(err => {
                         console.error("Image Preview Error:", err);
                         setError(prev => ({ ...prev, image: 'Failed to generate preview.' }));
                     });
+
+                    const htmlGenPromise = generateHtmlFromPrompt(finalPrompt).then(html => {
+                        generatedHtml = html;
+                        setHtmlOutput(html);
+                    }).catch(err => {
+                        console.error("HTML Generation Error:", err);
+                        setError(prev => ({ ...prev, html: 'Failed to generate HTML from prompt.' }));
+                    });
+
+                    await Promise.all([imageGenPromise, htmlGenPromise]);
                 }
                 
                  setHistory(prev => [{
@@ -123,6 +133,7 @@ const App: React.FC = () => {
                     output: finalPrompt,
                     previewImage: generatedImage,
                     inspirationLinks: generatedLinks,
+                    htmlOutput: generatedHtml || undefined,
                     inputMode,
                 }, ...prev.slice(0, 19)]);
 
@@ -172,9 +183,9 @@ const App: React.FC = () => {
             setGeneratedPrompt(item.output || '');
             setPreviewImage(item.previewImage || null);
             setInspirationLinks(item.inspirationLinks || []);
+            setHtmlOutput(item.htmlOutput || '');
             setHtmlInput('');
             setCloneHtmlInput('');
-            setHtmlOutput('');
         } else { // modify mode
             setSelectedStyle(VISUAL_STYLES[0]); // Reset to default
             setGeneratedPrompt('');

@@ -35,18 +35,27 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const isModifyMode = inputMode === 'modify';
 
     useEffect(() => {
+        // When switching modes, ensure the active tab is valid
+        if (isModifyMode && activeTab === 'prompt') {
+            setActiveTab('preview');
+        }
+    }, [inputMode, activeTab, isModifyMode]);
+
+    useEffect(() => {
         // When generation starts, switch to the most relevant tab
         if (isLoading) {
              setActiveTab('preview');
         } else {
-            // After loading, if there's code output, default to that tab.
-            if (isModifyMode && htmlOutput) {
-                setActiveTab('preview'); // Show the rendered preview first
-            } else if (inputMode === 'description' && (generatedPrompt || previewImage)) {
-                setActiveTab('preview');
+            // After loading, default to the most relevant tab with content
+            if (isModifyMode) {
+                if (htmlOutput) setActiveTab('preview');
+            } else {
+                if (previewImage) setActiveTab('preview');
+                else if (generatedPrompt) setActiveTab('prompt');
+                else if (htmlOutput) setActiveTab('code');
             }
         }
-    }, [isLoading, htmlOutput, generatedPrompt, previewImage, isModifyMode, inputMode]);
+    }, [isLoading, htmlOutput, generatedPrompt, previewImage, isModifyMode]);
 
 
     useEffect(() => {
@@ -69,6 +78,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     } else {
         tabs.push({ id: 'preview', label: 'Preview', icon: PhotoIcon });
         tabs.push({ id: 'prompt', label: 'Prompt', icon: SparkleIcon });
+        tabs.push({ id: 'code', label: 'Code', icon: CodeBracketIcon });
     }
 
     const CopyButton = ({ type }: { type: 'prompt' | 'code' }) => {
@@ -126,14 +136,14 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                         />
                     )
                 )}
-                {activeTab === 'prompt' && !isModifyMode &&(
+                {activeTab === 'prompt' && !isModifyMode && (
                     <OutputPanelContent
                         prompt={generatedPrompt}
                         isLoading={isLoading && !generatedPrompt && !errors.prompt}
                         error={errors.prompt || null}
                     />
                 )}
-                {activeTab === 'code' && isModifyMode && (
+                {activeTab === 'code' && (
                     <HtmlOutputPanelContent
                         html={htmlOutput}
                         isLoading={isLoading && !htmlOutput && !errors.html}

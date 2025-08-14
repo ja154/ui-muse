@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { VisualStyle, InspirationLink } from '../types.ts';
 
@@ -123,6 +122,49 @@ Respond ONLY with a valid JSON array of objects. Each object must have two keys:
             throw new Error(`Gemini API Error: ${error.message}`);
         }
         throw new Error("An unknown error occurred while finding inspiration.");
+    }
+};
+
+export const generateHtmlFromPrompt = async (prompt: string): Promise<string> => {
+    const metaPrompt = `
+You are an expert front-end developer specializing in Tailwind CSS.
+Your task is to convert a detailed UI/UX prompt into a single, clean, and responsive HTML file using Tailwind CSS.
+
+**PROMPT:**
+---
+${prompt}
+---
+
+**INSTRUCTIONS:**
+1.  **Analyze the Prompt:** Read the provided UI prompt carefully to understand the required components, layout, color scheme, typography, and overall aesthetic.
+2.  **Generate HTML with Tailwind CSS:** Create a complete HTML structure for the component or page described.
+3.  **Use Tailwind CSS ONLY:** Apply all styling exclusively through Tailwind CSS classes. Do not use any inline \`style\` attributes or \`<style>\` blocks.
+4.  **Component-Based:** The output should be a self-contained block of HTML that represents the UI. It should not include \`<html>\` or \`<body>\` tags unless it's a full page layout.
+5.  **Placeholders:** Use appropriate placeholders for text and images. For images, use services like placeholder.com (e.g., \`https://via.placeholder.com/150\`).
+6.  **Return Only Code:** Your entire response must be ONLY the raw HTML code block. Do not include any explanations, comments, markdown formatting (like \`\`\`html\`), or conversational text.
+`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: metaPrompt,
+        });
+
+        let refinedCode = response.text.trim();
+        const codeFenceRegex = /^```html\s*\n?(.*?)\n?\s*```$/s;
+        const match = refinedCode.match(codeFenceRegex);
+        if (match && match[1]) {
+            refinedCode = match[1].trim();
+        }
+        
+        return refinedCode;
+
+    } catch (error) {
+        console.error("Error calling Gemini API for HTML generation from prompt:", error);
+        if (error instanceof Error) {
+            throw new Error(`Gemini API Error: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while generating HTML from prompt.");
     }
 };
 
