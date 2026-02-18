@@ -1,13 +1,15 @@
 
 import React from 'react';
 import { VisualStyle, InputMode } from '../types.ts';
-import { GenerateIcon, CodeBracketIcon, LoadingSpinner } from './icons.tsx';
+import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon } from './icons.tsx';
 
 interface InputPanelProps {
     inputMode: InputMode;
     setInputMode: (mode: InputMode) => void;
     userInput: string;
     setUserInput: (value: string) => void;
+    urlInput: string;
+    setUrlInput: (value: string) => void;
     htmlInput: string;
     setHtmlInput: (value: string) => void;
     cloneHtmlInput: string;
@@ -21,36 +23,40 @@ interface InputPanelProps {
 
 const InputPanel: React.FC<InputPanelProps> = (props) => {
     const {
-        inputMode, setInputMode, userInput, setUserInput, htmlInput, setHtmlInput,
-        cloneHtmlInput, setCloneHtmlInput, selectedStyle, setSelectedStyle, 
-        visualStyles, onGenerate, isLoading
+        inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
+        htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput, 
+        selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading
     } = props;
 
     const isGenerateDisabled = isLoading || (
         (inputMode === 'description' && !userInput.trim()) ||
-        (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim()))
+        (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
+        (inputMode === 'clone' && !urlInput.trim())
     );
 
     const mainTabs = [
-        { mode: 'description', label: 'Describe UI' },
-        { mode: 'modify', label: 'Remix HTML' }
+        { mode: 'description', label: 'Describe' },
+        { mode: 'modify', label: 'Remix' },
+        { mode: 'clone', label: 'Clone Web' }
     ];
     
     const getButtonText = () => {
-        if (isLoading) return 'Generating...';
+        if (isLoading) return 'Processing...';
         if (inputMode === 'modify') return 'Remix HTML';
+        if (inputMode === 'clone') return 'Clone Website';
         return 'Build UI';
     }
     
     const getButtonIcon = () => {
         if (isLoading) return <LoadingSpinner className="-ml-1 mr-3 h-5 w-5 text-black" />;
         if (inputMode === 'modify') return <CodeBracketIcon className="w-6 h-6" />;
+        if (inputMode === 'clone') return <GlobeAltIcon className="w-6 h-6" />;
         return <GenerateIcon className="w-6 h-6" />;
     }
 
     return (
-        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 relative group">
-            <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
+        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group overflow-hidden">
+            <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/30 to-brand-secondary/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
             
             <div className="relative">
                 <div className="flex border-b border-brand-border/50">
@@ -58,7 +64,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         <button
                             key={tab.mode}
                             onClick={() => setInputMode(tab.mode as InputMode)}
-                            className={`flex-1 p-4 text-lg font-semibold transition-all duration-300 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10' : 'text-brand-muted hover:bg-white/5'}`}
+                            className={`flex-1 p-3 text-sm font-bold transition-all duration-300 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5'}`}
                         >
                             {tab.label}
                         </button>
@@ -69,25 +75,25 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'description' && (
                         <>
                             <div>
-                                <label className="block text-lg font-semibold mb-2 text-gray-200">1. Describe your UI idea</label>
+                                <label className="block text-sm font-bold mb-2 text-gray-200">1. Describe your UI idea</label>
                                 <textarea
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder="e.g., A futuristic dashboard for a music app"
-                                    className="w-full h-36 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent transition duration-200 resize-none placeholder-gray-500 text-gray-200 focus:shadow-[0_0_20px_rgba(0,242,234,0.3)]"
+                                    placeholder="e.g., A sleek dark-mode fitness dashboard"
+                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 resize-none text-gray-200"
                                     disabled={isLoading}
                                 />
                             </div>
                             <div>
-                                <label className="block text-lg font-semibold mb-2 text-gray-200">2. Choose a visual style</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                <label className="block text-sm font-bold mb-2 text-gray-200">2. Choose a visual style</label>
+                                <div className="grid grid-cols-2 gap-2">
                                     {visualStyles.map((style) => (
                                         <button
                                             key={style}
                                             onClick={() => setSelectedStyle(style)}
                                             disabled={isLoading}
-                                            className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-surface focus:ring-brand-primary disabled:opacity-50 transform hover:scale-105
-                                                ${selectedStyle === style ? 'bg-brand-primary text-black shadow-[0_0_15px_rgba(0,242,234,0.5)]' : 'bg-gray-700/50 hover:bg-gray-700'}`}
+                                            className={`px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 transform hover:scale-[1.02]
+                                                ${selectedStyle === style ? 'bg-brand-primary text-black' : 'bg-gray-700/50 hover:bg-gray-700'}`}
                                         >
                                             {style}
                                         </button>
@@ -100,32 +106,52 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'modify' && (
                         <>
                             <div>
-                                 <label className="block text-lg font-semibold mb-2 text-gray-200">1. Your Existing HTML</label>
+                                 <label className="block text-sm font-bold mb-2 text-gray-200">1. Your Existing HTML</label>
                                  <textarea
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
-                                    placeholder="<div class='container'>...</div>"
-                                    className="w-full h-40 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent transition duration-200 resize-y placeholder-gray-500 text-gray-200 focus:shadow-[0_0_20px_rgba(0,242,234,0.3)]"
-                                    disabled={isLoading}
+                                    placeholder="Paste HTML to modify..."
+                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200"
                                 />
                             </div>
                             <div>
-                                <label className="block text-lg font-semibold mb-2 text-gray-200">2. Paste HTML to Clone Style From</label>
+                                <label className="block text-sm font-bold mb-2 text-gray-200">2. Paste Style to Clone</label>
                                 <textarea
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
-                                    placeholder="<div class='bg-blue-500 text-white rounded'>...</div>"
-                                    className="w-full h-40 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent transition duration-200 resize-y placeholder-gray-500 text-gray-200 focus:shadow-[0_0_20px_rgba(0,242,234,0.3)]"
-                                    disabled={isLoading}
+                                    placeholder="Paste HTML with desired styling..."
+                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200"
                                 />
                             </div>
                         </>
+                    )}
+
+                    {inputMode === 'clone' && (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-gray-200">Enter Website URL</label>
+                                <div className="relative">
+                                    <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
+                                    <input
+                                        type="url"
+                                        value={urlInput}
+                                        onChange={(e) => setUrlInput(e.target.value)}
+                                        placeholder="https://example.com"
+                                        className="w-full p-4 pl-12 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 text-gray-200"
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <p className="text-xs text-brand-muted mt-2">
+                                    Gemini will analyze the site's layout and style to build a Tailwind CSS clone.
+                                </p>
+                            </div>
+                        </div>
                     )}
                     
                     <button
                         onClick={onGenerate}
                         disabled={isGenerateDisabled}
-                        className="w-full flex items-center justify-center gap-3 px-6 py-4 text-lg font-bold text-black bg-brand-primary rounded-lg shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/60 hover:scale-[1.02] transition-all duration-300 ease-in-out disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg focus:ring-brand-primary"
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 text-lg font-bold text-black bg-brand-primary rounded-lg shadow-lg hover:shadow-brand-primary/40 hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {getButtonIcon()}
                         {getButtonText()}

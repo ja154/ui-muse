@@ -10,7 +10,7 @@ export enum VisualStyle {
     Vintage = 'Vintage & Retro'
 }
 
-export type InputMode = 'description' | 'modify';
+export type InputMode = 'description' | 'modify' | 'clone';
 
 export interface Template {
     id: string;
@@ -19,18 +19,31 @@ export interface Template {
     style: VisualStyle;
 }
 
+export interface GroundingSource {
+    web?: {
+        uri: string;
+        title: string;
+    };
+}
+
 export interface HistoryItem {
     id: string;
-    input: string; // User's text description/goal
+    input: string; 
     inputMode: InputMode;
 
     // --- Description Mode Specific ---
     style?: VisualStyle; 
-    output?: string; // The enhanced/generated text prompt
+    output?: string; 
     previewImage?: string | null;
     
     // --- Modify Mode Specific ---
-    htmlInput?: string; // Original HTML for 'modify' mode
-    cloneHtmlInput?: string; // HTML to clone style from
-    htmlOutput?: string; // The refined/generated HTML
+    htmlInput?: string; 
+    cloneHtmlInput?: string; 
+    
+    // --- Clone Mode Specific ---
+    urlInput?: string;
+    groundingSources?: GroundingSource[];
+
+    // Common output
+    htmlOutput?: string; 
 }

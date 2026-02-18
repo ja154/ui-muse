@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PreviewPanel from './PreviewPanel.tsx';
 import OutputPanelContent from './OutputPanel.tsx';
@@ -14,14 +15,16 @@ import {
     DeviceTabletIcon,
     ComputerDesktopIcon,
     ArrowsPointingOutIcon,
-    XMarkIcon
+    XMarkIcon,
+    LinkIcon
 } from './icons.tsx';
-import { InputMode } from '../types.ts';
+import { InputMode, GroundingSource } from '../types.ts';
 
 interface OutputTabsProps {
     previewImage: string | null;
     generatedPrompt: string;
     htmlOutput: string;
+    groundingSources?: GroundingSource[];
     isLoading: boolean;
     errors: {
         prompt?: string;
@@ -31,6 +34,26 @@ interface OutputTabsProps {
     inputMode: InputMode;
 }
 
+const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources }) => {
+    if (!sources || sources.length === 0) return null;
+    return (
+        <div className="mt-4 p-4 bg-brand-bg/50 border border-brand-border/50 rounded-lg">
+            <h4 className="text-xs font-bold text-brand-primary mb-2 flex items-center gap-1">
+                <LinkIcon className="w-3 h-3" /> SOURCES ANALYZED
+            </h4>
+            <ul className="space-y-1">
+                {sources.map((s, i) => s.web && (
+                    <li key={i}>
+                        <a href={s.web.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand-muted hover:text-white transition-colors truncate block">
+                            {s.web.title || s.web.uri}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 type Tab = 'preview' | 'prompt' | 'code';
 type Viewport = 'mobile' | 'tablet' | 'desktop';
 
@@ -38,6 +61,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     previewImage,
     generatedPrompt,
     htmlOutput,
+    groundingSources = [],
     isLoading,
     errors,
     inputMode,
@@ -47,42 +71,17 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const [viewport, setViewport] = useState<Viewport>('desktop');
     const [isFullScreen, setIsFullScreen] = useState(false);
 
-    const isModifyMode = inputMode === 'modify';
+    const isModifyOrClone = inputMode === 'modify' || inputMode === 'clone';
 
     useEffect(() => {
-        if (isModifyMode && activeTab === 'prompt') {
+        if (isModifyOrClone && activeTab === 'prompt') {
             setActiveTab('preview');
         }
-    }, [inputMode, activeTab, isModifyMode]);
+    }, [inputMode, activeTab, isModifyOrClone]);
 
     useEffect(() => {
-        if (isLoading) {
-             setActiveTab('preview');
-        } else {
-            if (isModifyMode) {
-                if (htmlOutput) setActiveTab('preview');
-            } else {
-                if (previewImage) setActiveTab('preview');
-                else if (generatedPrompt) setActiveTab('prompt');
-                else if (htmlOutput) setActiveTab('code');
-            }
-        }
-    }, [isLoading, htmlOutput, generatedPrompt, previewImage, isModifyMode]);
-
-
-    useEffect(() => {
-        setCopiedStates({ prompt: false, code: false });
-    }, [generatedPrompt, htmlOutput]);
-    
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                setIsFullScreen(false);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+        if (isLoading) setActiveTab('preview');
+    }, [isLoading]);
 
     const handleCopy = (type: 'prompt' | 'code') => {
         const textToCopy = type === 'prompt' ? generatedPrompt : htmlOutput;
@@ -93,10 +92,8 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         }
     };
     
-    const hasPreviewContent = previewImage || htmlOutput;
-
     const tabsConfig: { id: Tab; label: string; icon: React.FC<any> }[] = [];
-    if (isModifyMode) {
+    if (isModifyOrClone) {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: GlobeAltIcon });
         tabsConfig.push({ id: 'code', label: 'Code', icon: CodeBracketIcon });
     } else {
@@ -105,115 +102,72 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         tabsConfig.push({ id: 'code', label: 'Code', icon: CodeBracketIcon });
     }
 
-    const CopyButton = ({ type }: { type: 'prompt' | 'code' }) => {
-        const textExists = type === 'prompt' ? generatedPrompt : htmlOutput;
-        if (isLoading || !textExists) return null;
-        
-        const isCopied = copiedStates[type];
-        
-        return (
-            <button
-                onClick={() => handleCopy(type)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-black/20 hover:bg-white/10 rounded-md transition-colors border border-brand-border/80"
-            >
-                {isCopied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
-                {isCopied ? 'Copied!' : 'Copy'}
-            </button>
-        );
-    };
-    
-    const viewportControls = [
-        { id: 'mobile', icon: DevicePhoneMobileIcon },
-        { id: 'tablet', icon: DeviceTabletIcon },
-        { id: 'desktop', icon: ComputerDesktopIcon },
-    ];
-
-    const PreviewComponent = isModifyMode ? (
+    const PreviewComponent = (inputMode === 'clone' || inputMode === 'modify') || htmlOutput ? (
         <HtmlPreviewPanel
             html={htmlOutput}
-            isLoading={isLoading && !htmlOutput && !errors.html}
+            isLoading={isLoading && !htmlOutput}
             error={errors.html || null}
             viewport={viewport}
         />
     ) : (
         <PreviewPanel
             imageUrl={previewImage}
-            isLoading={isLoading && !previewImage && !errors.image}
+            isLoading={isLoading && !previewImage}
             error={errors.image || null}
             viewport={viewport}
         />
     );
 
-
     return (
         <>
-            <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 relative group">
-                 <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
+            <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group">
                 <div className="relative">
                     <div className="flex justify-between items-center p-4 border-b border-brand-border/50">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                             {tabsConfig.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all duration-300 ${
-                                        activeTab === tab.id
-                                            ? 'text-black bg-brand-primary shadow-[0_0_10px_rgba(0,242,234,0.4)]'
-                                            : 'text-brand-muted hover:bg-white/5'
+                                    className={`px-4 py-2 text-xs font-bold rounded transition-all duration-300 ${
+                                        activeTab === tab.id ? 'text-black bg-brand-primary' : 'text-brand-muted hover:bg-white/5'
                                     }`}
                                 >
-                                    <tab.icon className="w-5 h-5" />
-                                    <span>{tab.label}</span>
+                                    {tab.label}
                                 </button>
                             ))}
                         </div>
                         
-                        <div className={`flex items-center gap-2 transition-opacity duration-300 ${activeTab === 'preview' && hasPreviewContent && !isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="bg-black/20 border border-brand-border/80 rounded-md p-1 flex items-center gap-1">
-                                {viewportControls.map(control => (
-                                    <button key={control.id} onClick={() => setViewport(control.id as Viewport)} className={`p-1.5 rounded-md transition-colors ${viewport === control.id ? 'bg-brand-primary text-black' : 'hover:bg-white/10 text-brand-muted'}`}>
-                                        <control.icon className="w-5 h-5" />
-                                    </button>
-                                ))}
-                            </div>
-                            <button onClick={() => setIsFullScreen(true)} className="p-2.5 bg-black/20 border border-brand-border/80 rounded-md transition-colors hover:bg-white/10 text-brand-muted">
-                                <ArrowsPointingOutIcon className="w-5 h-5" />
-                            </button>
+                        <div className="flex items-center gap-2">
+                             {activeTab === 'preview' && !isLoading && htmlOutput && (
+                                <div className="bg-black/20 rounded flex p-1">
+                                    <button onClick={() => setViewport('mobile')} className={`p-1 ${viewport === 'mobile' ? 'text-brand-primary' : 'text-gray-500'}`}><DevicePhoneMobileIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setViewport('tablet')} className={`p-1 ${viewport === 'tablet' ? 'text-brand-primary' : 'text-gray-500'}`}><DeviceTabletIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setViewport('desktop')} className={`p-1 ${viewport === 'desktop' ? 'text-brand-primary' : 'text-gray-500'}`}><ComputerDesktopIcon className="w-4 h-4"/></button>
+                                </div>
+                             )}
+                             {activeTab === 'code' && (
+                                <button onClick={() => handleCopy('code')} className="text-xs text-brand-muted hover:text-white flex items-center gap-1">
+                                    {copiedStates.code ? <CheckIcon className="w-3 h-3"/> : <CopyIcon className="w-3 h-3"/>}
+                                    {copiedStates.code ? 'Copied' : 'Copy'}
+                                </button>
+                             )}
                         </div>
-
-                        {activeTab === 'prompt' && <CopyButton type="prompt" />}
-                        {activeTab === 'code' && <CopyButton type="code" />}
                     </div>
-                    <div className="p-6 min-h-[550px] flex items-center justify-center animate-fade-in overflow-hidden">
+                    <div className="p-6 min-h-[500px] flex flex-col items-center justify-center animate-fade-in">
                         {activeTab === 'preview' && PreviewComponent}
-                        {activeTab === 'prompt' && !isModifyMode && (
-                            <OutputPanelContent
-                                prompt={generatedPrompt}
-                                isLoading={isLoading && !generatedPrompt && !errors.prompt}
-                                error={errors.prompt || null}
-                            />
+                        {activeTab === 'prompt' && !isModifyOrClone && (
+                            <OutputPanelContent prompt={generatedPrompt} isLoading={isLoading} error={errors.prompt || null} />
                         )}
                         {activeTab === 'code' && (
-                            <HtmlOutputPanelContent
-                                html={htmlOutput}
-                                isLoading={isLoading && !htmlOutput && !errors.html}
-                                error={errors.html || null}
-                            />
+                            <HtmlOutputPanelContent html={htmlOutput} isLoading={isLoading} error={errors.html || null} />
+                        )}
+                        
+                        {!isLoading && groundingSources.length > 0 && inputMode === 'clone' && (
+                             <GroundingSources sources={groundingSources} />
                         )}
                     </div>
                 </div>
             </div>
-
-            {isFullScreen && (
-                <div className="fixed inset-0 bg-brand-bg/90 backdrop-blur-xl z-50 flex items-center justify-center animate-fade-in p-4 sm:p-8">
-                    <button onClick={() => setIsFullScreen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors bg-black/20 p-2 rounded-full z-10">
-                        <XMarkIcon className="w-7 h-7" />
-                    </button>
-                    <div className="w-full h-full flex items-center justify-center overflow-auto">
-                        {React.cloneElement(PreviewComponent, { viewport: 'desktop' })}
-                    </div>
-                </div>
-            )}
         </>
     );
 };
