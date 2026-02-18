@@ -1,7 +1,6 @@
-
-import React from 'react';
+import React, { useRef } from 'react';
 import { VisualStyle, InputMode } from '../types.ts';
-import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon } from './icons.tsx';
+import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon, PhotoIcon, XMarkIcon } from './icons.tsx';
 
 interface InputPanelProps {
     inputMode: InputMode;
@@ -10,6 +9,8 @@ interface InputPanelProps {
     setUserInput: (value: string) => void;
     urlInput: string;
     setUrlInput: (value: string) => void;
+    screenshots: string[];
+    setScreenshots: React.Dispatch<React.SetStateAction<string[]>>;
     htmlInput: string;
     setHtmlInput: (value: string) => void;
     cloneHtmlInput: string;
@@ -24,15 +25,37 @@ interface InputPanelProps {
 const InputPanel: React.FC<InputPanelProps> = (props) => {
     const {
         inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
+        screenshots, setScreenshots,
         htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput, 
         selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading
     } = props;
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const isGenerateDisabled = isLoading || (
         (inputMode === 'description' && !userInput.trim()) ||
         (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
-        (inputMode === 'clone' && !urlInput.trim())
+        (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0))
     );
+
+    // Fix: Explicitly typing file as File and casting Array.from result to File[]
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fileList = e.target.files;
+        if (fileList) {
+            const files = Array.from(fileList) as File[];
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setScreenshots(prev => [...prev, reader.result as string].slice(-3));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    const removeScreenshot = (index: number) => {
+        setScreenshots(prev => prev.filter((_, i) => i !== index));
+    };
 
     const mainTabs = [
         { mode: 'description', label: 'Describe' },
@@ -127,7 +150,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     )}
 
                     {inputMode === 'clone' && (
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-gray-200">Enter Website URL</label>
                                 <div className="relative">
@@ -136,13 +159,51 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                         type="url"
                                         value={urlInput}
                                         onChange={(e) => setUrlInput(e.target.value)}
-                                        placeholder="https://example.com"
+                                        placeholder="https://stripe.com"
                                         className="w-full p-4 pl-12 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 text-gray-200"
                                         disabled={isLoading}
                                     />
                                 </div>
-                                <p className="text-xs text-brand-muted mt-2">
-                                    Gemini will analyze the site's layout and style to build a Tailwind CSS clone.
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-gray-200 flex items-center gap-2">
+                                    Add Visual Evidence
+                                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Experimental</span>
+                                </label>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    multiple 
+                                    onChange={handleFileUpload}
+                                />
+                                
+                                <div className="grid grid-cols-3 gap-3">
+                                    {screenshots.map((src, i) => (
+                                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-brand-border group/img">
+                                            <img src={src} className="w-full h-full object-cover" />
+                                            <button 
+                                                onClick={() => removeScreenshot(i)}
+                                                className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-white hover:bg-red-500 transition-colors opacity-0 group-hover/img:opacity-100"
+                                            >
+                                                <XMarkIcon className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {screenshots.length < 3 && (
+                                        <button 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="aspect-square border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center gap-1 text-brand-muted hover:border-brand-primary hover:text-brand-primary transition-all bg-black/20"
+                                        >
+                                            <PhotoIcon className="w-6 h-6" />
+                                            <span className="text-[10px] font-bold">ADD SCREENSHOT</span>
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-brand-muted mt-3 italic">
+                                    Gemini analyzes screenshots for spacing, colors, and specific UI elements to ensure a faithful reconstruction.
                                 </p>
                             </div>
                         </div>

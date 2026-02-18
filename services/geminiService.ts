@@ -1,11 +1,7 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { VisualStyle, GroundingSource } from '../types.ts';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
-}
-
+// Initializing the GoogleGenAI client with the API key from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const cleanHtmlResponse = (text: string): string => {
@@ -111,29 +107,50 @@ Return ONLY the raw HTML.
     }
 };
 
-export const cloneWebsite = async (url: string): Promise<{ html: string; sources: GroundingSource[] }> => {
-    const metaPrompt = `
-You are a world-class front-end engineer.
-Your task is to analyze the website at the provided URL and recreate its visual design and layout exactly using ONLY HTML and Tailwind CSS.
+export const cloneWebsite = async (url: string, screenshots: string[] = []): Promise<{ html: string; sources: GroundingSource[] }> => {
+    const designPrompt = `
+You are a Pixel-Perfect Web Reconstructor.
+Analyze the website at the provided URL AND the attached screenshots to recreate its design system using ONLY HTML and Tailwind CSS.
 
-URL to clone: ${url}
+TARGET URL: ${url}
 
-INSTRUCTIONS:
-1. Use Google Search to find visual information, layout structures, and brand guidelines for this website.
-2. Recreate the main landing page experience (hero section, navigation, feature blocks).
-3. Use high-fidelity Tailwind CSS classes for colors, shadows, and spacing.
-4. Ensure it looks as close to the original as possible.
-5. Use placeholder images and content that represent the original.
+PHASE 1: VISUAL AUDIT (From Screenshots)
+- Extract precise spacing, padding, and layout structures visible in the images.
+- Match colors (HEX codes) and font-weights exactly as they appear.
+- Identify specific UI patterns (glassmorphism, soft shadows, sharp corners).
 
-Return ONLY the raw HTML code. Do not include markdown code fences or any conversational text.
+PHASE 2: RESEARCH (Google Search)
+- Find high-fidelity brand assets, SVG logos, and official brand color palettes.
+- Search for the specific fonts used to find Tailwind equivalents.
+
+PHASE 3: RECONSTRUCTION
+- Generate a full, responsive HTML structure using Tailwind CSS.
+- Ensure the hero section, navigation, and key feature blocks are structurally identical to the source.
+- Use arbitrary Tailwind values for non-standard colors/sizes.
+
+Return ONLY raw HTML. No markdown code fences.
 `;
+
+    const parts: any[] = [{ text: designPrompt }];
+    
+    // Add screenshots to the request
+    for (const base64 of screenshots) {
+        const data = base64.split(',')[1] || base64;
+        parts.push({
+            inlineData: {
+                data: data,
+                mimeType: 'image/png'
+            }
+        });
+    }
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: metaPrompt,
+            contents: { parts },
             config: {
-                tools: [{ googleSearch: {} }]
+                tools: [{ googleSearch: {} }],
+                thinkingConfig: { thinkingBudget: 16000 }
             },
         });
 
