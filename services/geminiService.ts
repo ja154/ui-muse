@@ -1,8 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { VisualStyle, GroundingSource } from '../types.ts';
 
 // Initializing the GoogleGenAI client with the API key from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const getMimeType = (base64: string): string => {
+    const match = base64.match(/^data:([^;]+);base64,/);
+    return match ? match[1] : 'image/png';
+};
 
 const cleanHtmlResponse = (text: string): string => {
     let refinedCode = text.trim();
@@ -16,9 +21,8 @@ const cleanHtmlResponse = (text: string): string => {
 
 export const enhancePrompt = async (userInput: string, style: VisualStyle): Promise<string> => {
     try {
-        const metaPrompt = `
-As an expert UI/UX designer and prompt engineer, your task is to take a user's simple description of a user interface and a desired visual style, and expand it into a rich, detailed, and structured prompt. 
-
+        const systemInstruction = "You are an expert UI/UX designer and prompt engineer. Your task is to expand simple UI descriptions into rich, detailed, and structured prompts.";
+        const prompt = `
 The user wants a UI for: "${userInput}"
 The desired visual style is: "${style}"
 
@@ -36,7 +40,8 @@ Your response should ONLY be the generated prompt text.
         
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: metaPrompt
+            contents: prompt,
+            config: { systemInstruction }
         });
         
         return response.text;
@@ -68,16 +73,16 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
 };
 
 export const generateHtmlFromPrompt = async (prompt: string): Promise<string> => {
-    const metaPrompt = `
-You are an expert front-end developer. Convert this UI prompt into a single, clean, accessible, and responsive HTML file using Tailwind CSS.
+    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.";
+    const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
-Return ONLY the raw HTML code block. No explanations.
-`;
+Return ONLY the raw HTML code. Do not include <html>, <head>, or <body> tags unless specifically asked. No explanations.`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: metaPrompt,
+            contents: userPrompt,
+            config: { systemInstruction }
         });
         return cleanHtmlResponse(response.text);
     } catch (error) {
@@ -87,18 +92,20 @@ Return ONLY the raw HTML code block. No explanations.
 };
 
 export const modifyHtml = async (originalHtml: string, styleHtml: string): Promise<string> => {
-    const metaPrompt = `
+    const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.";
+    const userPrompt = `
 Re-style the following "Original HTML" using the design language and Tailwind CSS classes from the "Style HTML".
 Preserve original content and improve accessibility.
 ORIGINAL: ${originalHtml}
 STYLE: ${styleHtml}
-Return ONLY the raw HTML.
+Return ONLY the raw HTML snippet.
 `;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: metaPrompt,
+            contents: userPrompt,
+            config: { systemInstruction }
         });
         return cleanHtmlResponse(response.text);
     } catch (error) {
@@ -108,38 +115,28 @@ Return ONLY the raw HTML.
 };
 
 export const cloneWebsite = async (url: string, screenshots: string[] = []): Promise<{ html: string; sources: GroundingSource[] }> => {
-    const designPrompt = `
-You are a Pixel-Perfect Web Reconstructor.
-Analyze the website at the provided URL AND the attached screenshots to recreate its design system using ONLY HTML and Tailwind CSS.
+    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme fidelity using HTML and Tailwind CSS.
 
-TARGET URL: ${url}
+CRITICAL GUIDELINES:
+1. SCREENSHOTS ARE THE SOURCE OF TRUTH: Analyze the attached images for exact layout, spacing (padding/margins), font weights, and color hex codes.
+2. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px]) to match the source exactly where standard Tailwind classes fall short.
+3. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
+4. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
+5. OUTPUT FORMAT: Return ONLY the raw HTML content (divs, sections, etc.). Do NOT include <html>, <head>, or <body> tags. Do NOT use markdown code fences.`;
 
-PHASE 1: VISUAL AUDIT (From Screenshots)
-- Extract precise spacing, padding, and layout structures visible in the images.
-- Match colors (HEX codes) and font-weights exactly as they appear.
-- Identify specific UI patterns (glassmorphism, soft shadows, sharp corners).
+    const userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
+Ensure the reconstruction is pixel-perfect and responsive.`;
 
-PHASE 2: RESEARCH (Google Search)
-- Find high-fidelity brand assets, SVG logos, and official brand color palettes.
-- Search for the specific fonts used to find Tailwind equivalents.
-
-PHASE 3: RECONSTRUCTION
-- Generate a full, responsive HTML structure using Tailwind CSS.
-- Ensure the hero section, navigation, and key feature blocks are structurally identical to the source.
-- Use arbitrary Tailwind values for non-standard colors/sizes.
-
-Return ONLY raw HTML. No markdown code fences.
-`;
-
-    const parts: any[] = [{ text: designPrompt }];
+    const parts: any[] = [{ text: userPrompt }];
     
     // Add screenshots to the request
     for (const base64 of screenshots) {
+        const mimeType = getMimeType(base64);
         const data = base64.split(',')[1] || base64;
         parts.push({
             inlineData: {
                 data: data,
-                mimeType: 'image/png'
+                mimeType: mimeType
             }
         });
     }
@@ -149,8 +146,9 @@ Return ONLY raw HTML. No markdown code fences.
             model: 'gemini-3-pro-preview',
             contents: { parts },
             config: {
+                systemInstruction,
                 tools: [{ googleSearch: {} }],
-                thinkingConfig: { thinkingBudget: 16000 }
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
             },
         });
 

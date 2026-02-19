@@ -21,8 +21,8 @@ export interface Template {
 
 export interface GroundingSource {
     web?: {
-        uri: string;
-        title: string;
+        uri?: string;
+        title?: string;
     };
 }
 
