@@ -46,7 +46,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    setScreenshots(prev => [...prev, reader.result as string].slice(-3));
+                    setScreenshots(prev => [...prev, reader.result as string].slice(-4));
                 };
                 reader.readAsDataURL(file);
             });
@@ -180,7 +180,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     onChange={handleFileUpload}
                                 />
                                 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     {screenshots.map((src, i) => (
                                         <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-brand-border group/img">
                                             <img src={src} className="w-full h-full object-cover" />
@@ -192,7 +192,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                             </button>
                                         </div>
                                     ))}
-                                    {screenshots.length < 3 && (
+                                    {screenshots.length < 4 && (
                                         <button 
                                             onClick={() => fileInputRef.current?.click()}
                                             className="aspect-square border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center gap-1 text-brand-muted hover:border-brand-primary hover:text-brand-primary transition-all bg-black/20"
