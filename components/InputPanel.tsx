@@ -11,6 +11,8 @@ interface InputPanelProps {
     setUrlInput: (value: string) => void;
     screenshots: string[];
     setScreenshots: React.Dispatch<React.SetStateAction<string[]>>;
+    pastedContent: string;
+    setPastedContent: (value: string) => void;
     htmlInput: string;
     setHtmlInput: (value: string) => void;
     cloneHtmlInput: string;
@@ -25,7 +27,7 @@ interface InputPanelProps {
 const InputPanel: React.FC<InputPanelProps> = (props) => {
     const {
         inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
-        screenshots, setScreenshots,
+        screenshots, setScreenshots, pastedContent, setPastedContent,
         htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput, 
         selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading
     } = props;
@@ -35,7 +37,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     const isGenerateDisabled = isLoading || (
         (inputMode === 'description' && !userInput.trim()) ||
         (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
-        (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0))
+        (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
     );
 
     // Fix: Explicitly typing file as File and casting Array.from result to File[]
@@ -205,6 +207,17 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                 <p className="text-[10px] text-brand-muted mt-3 italic">
                                     Gemini analyzes screenshots for spacing, colors, and specific UI elements to ensure a faithful reconstruction.
                                 </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-gray-200">Paste Content</label>
+                                <textarea
+                                    value={pastedContent}
+                                    onChange={(e) => setPastedContent(e.target.value)}
+                                    placeholder="Paste HTML, CSS, or any text content to provide more context..."
+                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 resize-none text-gray-200"
+                                    disabled={isLoading}
+                                />
                             </div>
                         </div>
                     )}

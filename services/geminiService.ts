@@ -114,7 +114,7 @@ Return ONLY the raw HTML snippet.
     }
 };
 
-export const cloneWebsite = async (url: string, screenshots: string[] = []): Promise<{ html: string; sources: GroundingSource[] }> => {
+export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; sources: GroundingSource[] }> => {
     const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme fidelity using HTML and Tailwind CSS.
 
 CRITICAL GUIDELINES:
@@ -122,10 +122,15 @@ CRITICAL GUIDELINES:
 2. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px]) to match the source exactly where standard Tailwind classes fall short.
 3. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
 4. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
-5. OUTPUT FORMAT: Return ONLY the raw HTML content (divs, sections, etc.). Do NOT include <html>, <head>, or <body> tags. Do NOT use markdown code fences.`;
+5. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
+6. OUTPUT FORMAT: Return ONLY the raw HTML content (divs, sections, etc.). Do NOT include <html>, <head>, or <body> tags. Do NOT use markdown code fences.`;
 
-    const userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
+    let userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
 Ensure the reconstruction is pixel-perfect and responsive.`;
+
+    if (pastedContent.trim()) {
+        userPrompt += `\n\nAdditional Context/Evidence provided by user:\n${pastedContent}`;
+    }
 
     const parts: any[] = [{ text: userPrompt }];
     

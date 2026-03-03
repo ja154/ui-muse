@@ -33,6 +33,7 @@ const App: React.FC = () => {
     const [userInput, setUserInput] = useState<string>(''); 
     const [urlInput, setUrlInput] = useState<string>('');
     const [screenshots, setScreenshots] = useState<string[]>([]);
+    const [pastedContent, setPastedContent] = useState<string>('');
     const [selectedStyle, setSelectedStyle] = useState<VisualStyle>(VISUAL_STYLES[0]);
     
     // Modify Mode State
@@ -138,20 +139,21 @@ const App: React.FC = () => {
                     htmlOutput: generatedHtml,
                 }, ...prev.slice(0, 19)]);
             } else if (inputMode === 'clone') {
-                if (!urlInput.trim() && screenshots.length === 0) {
-                    alert('Please enter a website URL or upload screenshots to clone.');
+                if (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()) {
+                    alert('Please enter a website URL, upload screenshots, or paste content to clone.');
                     setIsLoading(false);
                     return;
                 }
-                const { html, sources } = await cloneWebsite(urlInput, screenshots);
+                const { html, sources } = await cloneWebsite(urlInput, screenshots, pastedContent);
                 setHtmlOutput(html);
                 setGroundingSources(sources);
                 setHistory(prev => [{
                     id: Date.now().toString(),
-                    input: urlInput ? `Clone: ${urlInput}` : 'Clone from Screenshots',
+                    input: urlInput ? `Clone: ${urlInput}` : 'Clone from Screenshots/Content',
                     inputMode,
                     urlInput,
                     screenshots,
+                    pastedContent,
                     htmlOutput: html,
                     groundingSources: sources,
                 }, ...prev.slice(0, 19)]);
@@ -162,7 +164,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [userInput, selectedStyle, inputMode, htmlInput, cloneHtmlInput, urlInput, screenshots]);
+    }, [userInput, selectedStyle, inputMode, htmlInput, cloneHtmlInput, urlInput, screenshots, pastedContent]);
     
     const loadFromHistory = (item: HistoryItem) => {
         window.scrollTo(0, 0);
@@ -180,6 +182,7 @@ const App: React.FC = () => {
         } else if (item.inputMode === 'clone') {
             setUrlInput(item.urlInput || '');
             setScreenshots(item.screenshots || []);
+            setPastedContent(item.pastedContent || '');
             setGroundingSources(item.groundingSources || []);
         }
     };
@@ -199,6 +202,8 @@ const App: React.FC = () => {
                             setUrlInput={setUrlInput}
                             screenshots={screenshots}
                             setScreenshots={setScreenshots}
+                            pastedContent={pastedContent}
+                            setPastedContent={setPastedContent}
                             htmlInput={htmlInput}
                             setHtmlInput={setHtmlInput}
                             cloneHtmlInput={cloneHtmlInput}

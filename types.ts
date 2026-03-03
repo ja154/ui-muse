@@ -43,6 +43,7 @@ export interface HistoryItem {
     // --- Clone Mode Specific ---
     urlInput?: string;
     screenshots?: string[];
+    pastedContent?: string;
     groundingSources?: GroundingSource[];
 
     // Common output
