@@ -39,9 +39,12 @@ Your response should ONLY be the generated prompt text.
         `;
         
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: prompt,
-            config: { systemInstruction }
+            config: { 
+                systemInstruction,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+            }
         });
         
         return response.text;
@@ -80,9 +83,12 @@ Return ONLY the raw HTML code. Do not include <html>, <head>, or <body> tags unl
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: userPrompt,
-            config: { systemInstruction }
+            config: { 
+                systemInstruction,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+            }
         });
         return cleanHtmlResponse(response.text);
     } catch (error) {
@@ -103,9 +109,12 @@ Return ONLY the raw HTML snippet.
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: userPrompt,
-            config: { systemInstruction }
+            config: { 
+                systemInstruction,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+            }
         });
         return cleanHtmlResponse(response.text);
     } catch (error) {
@@ -148,7 +157,7 @@ Ensure the reconstruction is pixel-perfect and responsive.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: { parts },
             config: {
                 systemInstruction,
