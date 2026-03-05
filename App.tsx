@@ -68,7 +68,29 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (history.length > 0) {
-            localStorage.setItem('promptHistory', JSON.stringify(history));
+            try {
+                localStorage.setItem('promptHistory', JSON.stringify(history));
+            } catch (e) {
+                console.warn("Failed to save history to localStorage (quota exceeded). Attempting to save fewer items.", e);
+                try {
+                    // Try saving only the last 5 items
+                    const reducedHistory = history.slice(0, 5);
+                    localStorage.setItem('promptHistory', JSON.stringify(reducedHistory));
+                } catch (e2) {
+                     console.warn("Failed to save reduced history to localStorage. Attempting to save without heavy assets.", e2);
+                     // If it still fails, strip images from the last 5 items
+                     try {
+                        const noImageHistory = history.slice(0, 5).map(item => ({
+                            ...item,
+                            previewImage: null,
+                            screenshots: []
+                        }));
+                        localStorage.setItem('promptHistory', JSON.stringify(noImageHistory));
+                     } catch (e3) {
+                         console.error("Failed to save minimal history. Giving up.", e3);
+                     }
+                }
+            }
         }
     }, [history]);
 
@@ -160,7 +182,8 @@ const App: React.FC = () => {
             }
         } catch (err: any) {
             console.error(err);
-            setError({ html: err.message || 'Generation failed' });
+            const errorMessage = err?.message || 'Generation failed';
+            setError({ html: errorMessage });
         } finally {
             setIsLoading(false);
         }
@@ -168,11 +191,11 @@ const App: React.FC = () => {
     
     const loadFromHistory = (item: HistoryItem) => {
         window.scrollTo(0, 0);
-        setInputMode(item.inputMode);
+        setInputMode(item.inputMode || 'description');
         setHtmlOutput(item.htmlOutput || '');
         
         if (item.inputMode === 'description') {
-            setUserInput(item.input);
+            setUserInput(item.input || '');
             setSelectedStyle(item.style || VISUAL_STYLES[0]);
             setGeneratedPrompt(item.output || '');
             setPreviewImage(item.previewImage || null);
