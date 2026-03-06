@@ -43,6 +43,7 @@ const App: React.FC = () => {
     // Output state
     const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
     const [htmlOutput, setHtmlOutput] = useState<string>('');
+    const [cssOutput, setCssOutput] = useState<string>('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [groundingSources, setGroundingSources] = useState<GroundingSource[]>([]);
     
@@ -52,7 +53,7 @@ const App: React.FC = () => {
 
     // App status state
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<{ prompt?: string, image?: string, html?: string }>({});
+    const [error, setError] = useState<{ prompt?: string, image?: string, html?: string, css?: string }>({});
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
     useEffect(() => {
@@ -99,6 +100,7 @@ const App: React.FC = () => {
         setError({});
         setGeneratedPrompt('');
         setHtmlOutput('');
+        setCssOutput('');
         setPreviewImage(null);
         setGroundingSources([]);
     };
@@ -106,7 +108,7 @@ const App: React.FC = () => {
     const handleGenerateTemplate = useCallback(async (templateId: string, prompt: string, style: VisualStyle) => {
         setTemplateLoading(prev => ({ ...prev, [templateId]: true }));
         try {
-            const html = await generateHtmlFromPrompt(`${prompt} Style: ${style}`);
+            const { html } = await generateHtmlFromPrompt(`${prompt} Style: ${style}`);
             setGeneratedTemplates(prev => ({ ...prev, [templateId]: html }));
         } catch (err) {
             console.error(err);
@@ -131,13 +133,16 @@ const App: React.FC = () => {
                 const finalPrompt = await enhancePrompt(userInput, selectedStyle);
                 setGeneratedPrompt(finalPrompt);
                 
-                const [img, html] = await Promise.all([
+                const [img, result] = await Promise.all([
                     generateImagePreview(finalPrompt).catch(() => null),
                     generateHtmlFromPrompt(finalPrompt).catch(() => null)
                 ]);
 
                 if (img) setPreviewImage(img);
-                if (html) setHtmlOutput(html);
+                if (result) {
+                    setHtmlOutput(result.html);
+                    setCssOutput(result.css);
+                }
 
                 setHistory(prev => [{
                     id: Date.now().toString(),
@@ -145,20 +150,23 @@ const App: React.FC = () => {
                     style: selectedStyle,
                     output: finalPrompt,
                     previewImage: img,
-                    htmlOutput: html || undefined,
+                    htmlOutput: result?.html || undefined,
+                    cssOutput: result?.css || undefined,
                     inputMode,
                 }, ...prev.slice(0, 19)]);
 
             } else if (inputMode === 'modify') {
-                const generatedHtml = await modifyHtml(htmlInput, cloneHtmlInput);
-                setHtmlOutput(generatedHtml);
+                const { html, css } = await modifyHtml(htmlInput, cloneHtmlInput);
+                setHtmlOutput(html);
+                setCssOutput(css);
                 setHistory(prev => [{
                     id: Date.now().toString(),
                     input: 'HTML Remix',
                     inputMode,
                     htmlInput,
                     cloneHtmlInput,
-                    htmlOutput: generatedHtml,
+                    htmlOutput: html,
+                    cssOutput: css,
                 }, ...prev.slice(0, 19)]);
             } else if (inputMode === 'clone') {
                 if (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()) {
@@ -166,8 +174,9 @@ const App: React.FC = () => {
                     setIsLoading(false);
                     return;
                 }
-                const { html, sources } = await cloneWebsite(urlInput, screenshots, pastedContent);
+                const { html, css, sources } = await cloneWebsite(urlInput, screenshots, pastedContent);
                 setHtmlOutput(html);
+                setCssOutput(css);
                 setGroundingSources(sources);
                 setHistory(prev => [{
                     id: Date.now().toString(),
@@ -177,6 +186,7 @@ const App: React.FC = () => {
                     screenshots,
                     pastedContent,
                     htmlOutput: html,
+                    cssOutput: css,
                     groundingSources: sources,
                 }, ...prev.slice(0, 19)]);
             }
@@ -193,6 +203,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
         setInputMode(item.inputMode || 'description');
         setHtmlOutput(item.htmlOutput || '');
+        setCssOutput(item.cssOutput || '');
         
         if (item.inputMode === 'description') {
             setUserInput(item.input || '');
@@ -244,6 +255,7 @@ const App: React.FC = () => {
                             previewImage={previewImage}
                             generatedPrompt={generatedPrompt}
                             htmlOutput={htmlOutput}
+                            cssOutput={cssOutput}
                             groundingSources={groundingSources}
                             isLoading={isLoading}
                             errors={error}

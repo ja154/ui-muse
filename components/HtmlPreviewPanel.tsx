@@ -5,6 +5,7 @@ type Viewport = 'mobile' | 'tablet' | 'desktop';
 
 interface HtmlPreviewPanelProps {
     html: string;
+    css?: string;
     isLoading: boolean;
     error: string | null;
     viewport: Viewport;
@@ -27,9 +28,9 @@ const DeviceFrame: React.FC<{ children: React.ReactNode, device: 'mobile' | 'tab
 };
 
 
-const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, isLoading, error, viewport }) => {
+const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoading, error, viewport }) => {
     
-    const getFullHtml = (bodyContent: string) => {
+    const getFullHtml = (bodyContent: string, cssContent?: string) => {
         return `
             <!DOCTYPE html>
             <html lang="en" class="h-full">
@@ -39,6 +40,7 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, isLoading, er
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
                     body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+                    ${cssContent || ''}
                 </style>
                 <title>Preview</title>
             </head>
@@ -73,7 +75,7 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, isLoading, er
         if (html) {
             return (
                 <iframe 
-                    srcDoc={getFullHtml(html)} 
+                    srcDoc={getFullHtml(html, css)} 
                     title="HTML Preview" 
                     sandbox="allow-scripts allow-same-origin"
                     className="w-full h-full border-0 bg-white"

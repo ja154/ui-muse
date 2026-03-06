@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PreviewPanel from './PreviewPanel.tsx';
 import OutputPanelContent from './OutputPanel.tsx';
 import HtmlOutputPanelContent from './HtmlOutputPanel.tsx';
+import CssOutputPanelContent from './CssOutputPanel.tsx';
 import HtmlPreviewPanel from './HtmlPreviewPanel.tsx';
 import { 
     PhotoIcon, 
@@ -25,12 +26,14 @@ interface OutputTabsProps {
     previewImage: string | null;
     generatedPrompt: string;
     htmlOutput: string;
+    cssOutput?: string;
     groundingSources?: GroundingSource[];
     isLoading: boolean;
     errors: {
         prompt?: string;
         image?: string;
         html?: string;
+        css?: string;
     };
     inputMode: InputMode;
 }
@@ -55,20 +58,21 @@ const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources })
     );
 };
 
-type Tab = 'preview' | 'prompt' | 'code';
+type Tab = 'preview' | 'prompt' | 'code' | 'css';
 type Viewport = 'mobile' | 'tablet' | 'desktop';
 
 const OutputTabs: React.FC<OutputTabsProps> = ({
     previewImage,
     generatedPrompt,
     htmlOutput,
+    cssOutput,
     groundingSources = [],
     isLoading,
     errors,
     inputMode,
 }) => {
     const [activeTab, setActiveTab] = useState<Tab>('preview');
-    const [copiedStates, setCopiedStates] = useState({ prompt: false, code: false });
+    const [copiedStates, setCopiedStates] = useState({ prompt: false, code: false, css: false });
     const [viewport, setViewport] = useState<Viewport>('desktop');
 
     const isModifyOrClone = inputMode === 'modify' || inputMode === 'clone';
@@ -83,8 +87,12 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         if (isLoading) setActiveTab('preview');
     }, [isLoading]);
 
-    const handleCopy = (type: 'prompt' | 'code') => {
-        const textToCopy = type === 'prompt' ? generatedPrompt : htmlOutput;
+    const handleCopy = (type: 'prompt' | 'code' | 'css') => {
+        let textToCopy = '';
+        if (type === 'prompt') textToCopy = generatedPrompt;
+        else if (type === 'code') textToCopy = htmlOutput;
+        else if (type === 'css') textToCopy = cssOutput || '';
+
         if (textToCopy) {
             navigator.clipboard.writeText(textToCopy);
             setCopiedStates(prev => ({ ...prev, [type]: true }));
@@ -103,6 +111,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
                     body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; margin: 0; }
+                    ${cssOutput || ''}
                 </style>
                 <title>JengaUI Clone Preview</title>
             </head>
@@ -121,16 +130,19 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const tabsConfig: { id: Tab; label: string; icon: React.FC<any> }[] = [];
     if (isModifyOrClone) {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: GlobeAltIcon });
-        tabsConfig.push({ id: 'code', label: 'Code', icon: CodeBracketIcon });
+        tabsConfig.push({ id: 'code', label: 'HTML', icon: CodeBracketIcon });
+        tabsConfig.push({ id: 'css', label: 'CSS', icon: SparkleIcon });
     } else {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: PhotoIcon });
         tabsConfig.push({ id: 'prompt', label: 'Prompt', icon: SparkleIcon });
-        tabsConfig.push({ id: 'code', label: 'Code', icon: CodeBracketIcon });
+        tabsConfig.push({ id: 'code', label: 'HTML', icon: CodeBracketIcon });
+        tabsConfig.push({ id: 'css', label: 'CSS', icon: SparkleIcon });
     }
 
     const PreviewComponent = (inputMode === 'clone' || inputMode === 'modify') || htmlOutput ? (
         <HtmlPreviewPanel
             html={htmlOutput}
+            css={cssOutput}
             isLoading={isLoading && !htmlOutput}
             error={errors.html || null}
             viewport={viewport}
@@ -180,10 +192,10 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                                     </button>
                                 </>
                              )}
-                             {activeTab === 'code' && (
-                                <button onClick={() => handleCopy('code')} className="text-xs text-brand-muted hover:text-white flex items-center gap-1 px-2 py-1 bg-white/5 rounded border border-brand-border/30">
-                                    {copiedStates.code ? <CheckIcon className="w-3 h-3 text-green-400"/> : <CopyIcon className="w-3 h-3"/>}
-                                    {copiedStates.code ? 'Copied' : 'Copy Code'}
+                             {(activeTab === 'code' || activeTab === 'css') && (
+                                <button onClick={() => handleCopy(activeTab)} className="text-xs text-brand-muted hover:text-white flex items-center gap-1 px-2 py-1 bg-white/5 rounded border border-brand-border/30">
+                                    {copiedStates[activeTab] ? <CheckIcon className="w-3 h-3 text-green-400"/> : <CopyIcon className="w-3 h-3"/>}
+                                    {copiedStates[activeTab] ? 'Copied' : 'Copy'}
                                 </button>
                              )}
                         </div>
@@ -195,6 +207,9 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                         )}
                         {activeTab === 'code' && (
                             <HtmlOutputPanelContent html={htmlOutput} isLoading={isLoading} error={errors.html || null} />
+                        )}
+                        {activeTab === 'css' && (
+                            <CssOutputPanelContent css={cssOutput || ''} isLoading={isLoading} error={errors.css || null} />
                         )}
                         
                         {!isLoading && groundingSources.length > 0 && inputMode === 'clone' && (

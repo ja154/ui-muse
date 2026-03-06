@@ -48,4 +48,5 @@ export interface HistoryItem {
 
     // Common output
     htmlOutput?: string; 
+    cssOutput?: string;
 }

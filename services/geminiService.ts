@@ -1,4 +1,4 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { VisualStyle, GroundingSource } from '../types.ts';
 
 // Initializing the GoogleGenAI client with the API key from environment variables.
@@ -47,7 +47,7 @@ Your response should ONLY be the generated prompt text.
             }
         });
         
-        return response.text;
+        return response.text || '';
     } catch (error) {
         console.error("Error enhancing prompt:", error);
         throw error;
@@ -63,7 +63,7 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
             contents: { parts: [{ text: imagePrompt }] },
         });
 
-        for (const part of response.candidates[0].content.parts) {
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
             if (part.inlineData) {
                 return `data:image/png;base64,${part.inlineData.data}`;
             }
@@ -75,11 +75,11 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
     }
 };
 
-export const generateHtmlFromPrompt = async (prompt: string): Promise<string> => {
-    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.";
+export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
+    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS. Also provide any necessary custom CSS for animations, keyframes, or specific styles not covered by Tailwind.";
     const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
-Return ONLY the raw HTML code. Do not include <html>, <head>, or <body> tags unless specifically asked. No explanations.`;
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).`;
 
     try {
         const response = await ai.models.generateContent({
@@ -87,24 +87,38 @@ Return ONLY the raw HTML code. Do not include <html>, <head>, or <body> tags unl
             contents: userPrompt,
             config: { 
                 systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        html: { type: Type.STRING },
+                        css: { type: Type.STRING }
+                    },
+                    required: ['html', 'css']
+                }
             }
         });
-        return cleanHtmlResponse(response.text);
+        
+        const jsonResponse = JSON.parse(response.text || '{}');
+        return {
+            html: jsonResponse.html || '',
+            css: jsonResponse.css || ''
+        };
     } catch (error) {
         console.error("Error generating HTML:", error);
         throw error;
     }
 };
 
-export const modifyHtml = async (originalHtml: string, styleHtml: string): Promise<string> => {
+export const modifyHtml = async (originalHtml: string, styleHtml: string): Promise<{ html: string; css: string }> => {
     const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.";
     const userPrompt = `
 Re-style the following "Original HTML" using the design language and Tailwind CSS classes from the "Style HTML".
 Preserve original content and improve accessibility.
 ORIGINAL: ${originalHtml}
 STYLE: ${styleHtml}
-Return ONLY the raw HTML snippet.
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code. The 'css' field should contain any custom CSS needed.
 `;
 
     try {
@@ -113,17 +127,30 @@ Return ONLY the raw HTML snippet.
             contents: userPrompt,
             config: { 
                 systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        html: { type: Type.STRING },
+                        css: { type: Type.STRING }
+                    },
+                    required: ['html', 'css']
+                }
             }
         });
-        return cleanHtmlResponse(response.text);
+        const jsonResponse = JSON.parse(response.text || '{}');
+        return {
+            html: jsonResponse.html || '',
+            css: jsonResponse.css || ''
+        };
     } catch (error) {
         console.error("Error modifying HTML:", error);
         throw error;
     }
 };
 
-export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; sources: GroundingSource[] }> => {
+export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme fidelity using HTML and Tailwind CSS.
 
 CRITICAL GUIDELINES:
@@ -132,7 +159,7 @@ CRITICAL GUIDELINES:
 3. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
 4. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
 5. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
-6. OUTPUT FORMAT: Return ONLY the raw HTML content (divs, sections, etc.). Do NOT include <html>, <head>, or <body> tags. Do NOT use markdown code fences.`;
+6. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.`;
 
     let userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
 Ensure the reconstruction is pixel-perfect and responsive.`;
@@ -162,14 +189,25 @@ Ensure the reconstruction is pixel-perfect and responsive.`;
             config: {
                 systemInstruction,
                 tools: [{ googleSearch: {} }],
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        html: { type: Type.STRING },
+                        css: { type: Type.STRING }
+                    },
+                    required: ['html', 'css']
+                }
             },
         });
 
-        const html = cleanHtmlResponse(response.text);
+        const jsonResponse = JSON.parse(response.text || '{}');
+        const html = jsonResponse.html || '';
+        const css = jsonResponse.css || '';
         const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         
-        return { html, sources };
+        return { html, css, sources };
     } catch (error) {
         console.error("Error cloning website:", error);
         throw error;
