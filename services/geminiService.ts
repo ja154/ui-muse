@@ -151,18 +151,50 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
 };
 
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
-    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme fidelity using HTML and Tailwind CSS.
+    let scrapedData: { html?: string; screenshot?: string; styles?: any } = {};
+
+    if (url) {
+        try {
+            console.log(`Scraping URL: ${url}`);
+            const response = await fetch('/api/scrape', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            
+            if (response.ok) {
+                scrapedData = await response.json();
+                console.log('Scraping successful');
+            } else {
+                console.warn('Scraping failed:', await response.text());
+            }
+        } catch (error) {
+            console.error('Error calling scrape API:', error);
+        }
+    }
+
+    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme visual fidelity using HTML and Tailwind CSS.
 
 CRITICAL GUIDELINES:
-1. SCREENSHOTS ARE THE SOURCE OF TRUTH: Analyze the attached images for exact layout, spacing (padding/margins), font weights, and color hex codes.
-2. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px]) to match the source exactly where standard Tailwind classes fall short.
+1. VISUAL ACCURACY IS PARAMOUNT: The provided screenshots are your absolute source of truth. If the scraped HTML structure conflicts with the visual appearance in the screenshot, ALWAYS prioritize the visual appearance. Do not invent elements not present in the screenshots.
+2. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px], text-[15px], leading-[1.2]) to match the source exactly where standard Tailwind classes fall short. Do not approximate colors, font sizes, or spacing.
 3. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
 4. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
 5. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
-6. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.`;
+6. COMPUTED STYLES: Use the provided computed styles (if any) as a baseline for fonts and colors.
+7. ASSETS: Ensure all image src attributes use absolute URLs from the original site or high-quality placeholders (e.g., picsum.photos). Do not use relative paths.
+8. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.`;
 
     let userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
 Ensure the reconstruction is pixel-perfect and responsive.`;
+
+    if (scrapedData.html) {
+        userPrompt += `\n\nScraped HTML Structure (Reference):\n${scrapedData.html.substring(0, 15000)}... (truncated)`;
+    }
+
+    if (scrapedData.styles) {
+        userPrompt += `\n\nComputed Styles (Reference):\n${JSON.stringify(scrapedData.styles, null, 2)}`;
+    }
 
     if (pastedContent.trim()) {
         userPrompt += `\n\nAdditional Context/Evidence provided by user:\n${pastedContent}`;
@@ -170,7 +202,19 @@ Ensure the reconstruction is pixel-perfect and responsive.`;
 
     const parts: any[] = [{ text: userPrompt }];
     
-    // Add screenshots to the request
+    // Add scraped screenshot first (high priority)
+    if (scrapedData.screenshot) {
+        const mimeType = getMimeType(scrapedData.screenshot);
+        const data = scrapedData.screenshot.split(',')[1] || scrapedData.screenshot;
+        parts.push({
+            inlineData: {
+                data: data,
+                mimeType: mimeType
+            }
+        });
+    }
+
+    // Add user screenshots
     for (const base64 of screenshots) {
         const mimeType = getMimeType(base64);
         const data = base64.split(',')[1] || base64;

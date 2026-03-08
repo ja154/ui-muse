@@ -66,7 +66,11 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     ];
     
     const getButtonText = () => {
-        if (isLoading) return 'Processing...';
+        if (isLoading) {
+            if (inputMode === 'clone') return 'Analyzing & Cloning...';
+            if (inputMode === 'modify') return 'Remixing...';
+            return 'Generating UI...';
+        }
         if (inputMode === 'modify') return 'Remix HTML';
         if (inputMode === 'clone') return 'Clone Website';
         return 'Build UI';
