@@ -5,24 +5,31 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JengaUI: AI-Powered UI Builder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
             colors: {
-              'brand-bg': '#0D0D0D',
-              'brand-surface': '#1A1A1A',
-              'brand-primary': '#00F2EA',
-              'brand-secondary': '#845EC2',
-              'brand-muted': '#A0AEC0',
-              'brand-border': '#333333',
-              'brand-glow': 'rgba(0, 242, 234, 0.1)',
+              'brand-bg': '#050505',
+              'brand-surface': '#121212',
+              'brand-primary': '#E4E3E0',
+              'brand-secondary': '#333333',
+              'brand-muted': '#8E9299',
+              'brand-border': '#222222',
+              'brand-glow': 'rgba(255, 255, 255, 0.05)',
             },
             animation: {
               'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'fade-in': 'fadeIn 0.5s ease-in-out forwards',
-              'slide-up': 'slideUp 0.5s ease-out forwards',
+              'fade-in': 'fadeIn 0.4s ease-out forwards',
+              'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             },
             keyframes: {
               fadeIn: {
@@ -30,7 +37,7 @@
                 '100%': { opacity: 1 },
               },
               slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: 0 },
+                '0%': { transform: 'translateY(10px)', opacity: 0 },
                 '100%': { transform: 'translateY(0)', opacity: 1 },
               },
             }
@@ -50,10 +57,39 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+<style>
+  body {
+    background-color: #050505;
+    color: #E4E3E0;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .bg-grid {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  }
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050505; 
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #222; 
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #333; 
+  }
+</style>
 </head>
-  <body class="text-gray-400 font-mono min-h-screen bg-gradient-to-br from-brand-bg to-brand-secondary/20">
-    <div class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#222_1px,transparent_1px)] [background-size:24px_24px]"></div>
+  <body class="min-h-screen relative selection:bg-brand-primary selection:text-black">
+    <div class="fixed inset-0 -z-10 h-full w-full bg-grid pointer-events-none"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

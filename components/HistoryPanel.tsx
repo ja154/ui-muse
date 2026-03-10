@@ -13,9 +13,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
     
     const getBadge = (item: HistoryItem) => {
         switch(item.inputMode) {
-            case 'modify': return <span className="bg-blue-900/70 text-blue-300 text-[10px] px-2 py-0.5 rounded-full font-bold">REMIX</span>;
-            case 'clone': return <span className="bg-green-900/70 text-green-300 text-[10px] px-2 py-0.5 rounded-full font-bold">CLONE</span>;
-            default: return <span className="bg-purple-900/70 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-bold">DESCRIBE</span>;
+            case 'modify': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">REMIX</span>;
+            case 'clone': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">CLONE</span>;
+            case 'blueprint': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">BLUEPRINT</span>;
+            default: return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">DESCRIBE</span>;
         }
     }
 

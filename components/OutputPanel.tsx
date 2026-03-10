@@ -42,7 +42,7 @@ const OutputPanelContent: React.FC<OutputPanelContentProps> = ({ prompt, isLoadi
                 }
                 return <p key={index} className="text-gray-300 leading-relaxed">{line}</p>;
             });
-            return <div className="prose prose-invert prose-p:text-gray-300 prose-headings:text-brand-primary">{formattedPrompt}</div>;
+            return <div className="prose prose-invert prose-p:text-gray-300 prose-headings:text-brand-primary prose-sm">{formattedPrompt}</div>;
         }
         return <p className="text-brand-muted">Your UI Blueprint will appear here...</p>;
     };

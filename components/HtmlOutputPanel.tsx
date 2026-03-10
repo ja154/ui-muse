@@ -30,8 +30,8 @@ const HtmlOutputPanelContent: React.FC<HtmlOutputPanelContentProps> = ({ html, i
         }
         if (html) {
             return (
-                <pre className="whitespace-pre-wrap break-words bg-[#111] p-4 rounded-lg border border-brand-border">
-                    <code className="font-mono text-sm text-gray-300">
+                <pre className="whitespace-pre-wrap break-words bg-black/40 p-4 rounded-lg border border-brand-border/80">
+                    <code className="font-mono text-xs text-gray-200">
                         {html}
                     </code>
                 </pre>

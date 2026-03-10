@@ -115,7 +115,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
                                     placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : "e.g., A sleek dark-mode fitness dashboard"}
-                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 resize-none text-gray-200"
+                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-gray-200 outline-none"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -148,7 +148,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
                                     placeholder="Paste HTML to modify..."
-                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200"
+                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none"
                                 />
                             </div>
                             <div>
@@ -157,7 +157,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
                                     placeholder="Paste HTML with desired styling..."
-                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200"
+                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none"
                                 />
                             </div>
                         </>
@@ -174,7 +174,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                         value={urlInput}
                                         onChange={(e) => setUrlInput(e.target.value)}
                                         placeholder="https://stripe.com"
-                                        className="w-full p-4 pl-12 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 text-gray-200"
+                                        className="w-full p-4 pl-12 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-gray-200 outline-none"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -227,7 +227,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}
                                     placeholder="Paste HTML, CSS, or any text content to provide more context..."
-                                    className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 resize-none text-gray-200"
+                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-gray-200 outline-none"
                                     disabled={isLoading}
                                 />
                             </div>

@@ -28,8 +28,8 @@ const CssOutputPanelContent: React.FC<CssOutputPanelContentProps> = ({ css, isLo
         }
         if (css) {
             return (
-                <pre className="whitespace-pre-wrap break-words bg-[#111] p-4 rounded-lg border border-brand-border">
-                    <code className="font-mono text-sm text-blue-300">
+                <pre className="whitespace-pre-wrap break-words bg-black/40 p-4 rounded-lg border border-brand-border/80">
+                    <code className="font-mono text-xs text-blue-300">
                         {css}
                     </code>
                 </pre>

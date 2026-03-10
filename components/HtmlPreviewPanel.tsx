@@ -13,8 +13,8 @@ interface HtmlPreviewPanelProps {
 
 const DeviceFrame: React.FC<{ children: React.ReactNode, device: 'mobile' | 'tablet' }> = ({ children, device }) => {
     const frameClasses = {
-        mobile: 'w-[395px] h-[797px] p-4 bg-gray-900 border-4 border-gray-700 rounded-[40px] shadow-2xl transition-all duration-300',
-        tablet: 'w-[808px] h-[1064px] p-4 bg-gray-900 border-4 border-gray-700 rounded-[24px] shadow-2xl transition-all duration-300'
+        mobile: 'w-[395px] h-[797px] p-4 bg-black border-4 border-brand-border/80 rounded-[40px] shadow-2xl transition-all duration-300',
+        tablet: 'w-[808px] h-[1064px] p-4 bg-black border-4 border-brand-border/80 rounded-[24px] shadow-2xl transition-all duration-300'
     };
     const screenClasses = 'bg-white w-full h-full rounded-[20px] overflow-hidden';
 
@@ -84,10 +84,10 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
         }
 
         return (
-            <div className="w-full h-full bg-brand-surface border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center text-brand-muted">
-                <GlobeAltIcon className="w-16 h-16 mb-4" />
-                <h3 className="text-lg font-semibold">HTML Preview</h3>
-                <p className="text-sm">Your modified UI will be rendered here</p>
+            <div className="w-full h-full bg-black/20 border border-dashed border-brand-border/50 rounded-lg flex flex-col items-center justify-center text-brand-muted">
+                <GlobeAltIcon className="w-16 h-16 mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold text-gray-300">HTML Preview</h3>
+                <p className="text-sm opacity-70">Your modified UI will be rendered here</p>
             </div>
         );
     }
