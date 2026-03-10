@@ -150,6 +150,42 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
     }
 };
 
+export const generateBlueprint = async (prompt: string): Promise<{ html: string; css: string }> => {
+    const systemInstruction = "You are an expert UX designer. Convert UI prompts into low-fidelity, structural wireframes/blueprints using HTML and Tailwind CSS. Focus on layout, hierarchy, and content placement. Use a grayscale palette, simple boxes, and placeholder text (Lorem Ipsum). Avoid high-fidelity styles, images, or complex colors.";
+    const userPrompt = `Convert this UI prompt into a clean, structural wireframe/blueprint using HTML and Tailwind CSS.
+**PROMPT:** ${prompt}
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: userPrompt,
+            config: { 
+                systemInstruction,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        html: { type: Type.STRING },
+                        css: { type: Type.STRING }
+                    },
+                    required: ['html', 'css']
+                }
+            }
+        });
+        
+        const jsonResponse = JSON.parse(response.text || '{}');
+        return {
+            html: jsonResponse.html || '',
+            css: jsonResponse.css || ''
+        };
+    } catch (error) {
+        console.error("Error generating blueprint:", error);
+        throw error;
+    }
+};
+
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     let scrapedData: { html?: string; screenshot?: string; styles?: any } = {};
 

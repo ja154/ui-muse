@@ -36,6 +36,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
     const isGenerateDisabled = isLoading || (
         (inputMode === 'description' && !userInput.trim()) ||
+        (inputMode === 'blueprint' && !userInput.trim()) ||
         (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
         (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
     );
@@ -61,6 +62,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
     const mainTabs = [
         { mode: 'description', label: 'Describe' },
+        { mode: 'blueprint', label: 'Blueprint' },
         { mode: 'modify', label: 'Remix' },
         { mode: 'clone', label: 'Clone Web' }
     ];
@@ -69,10 +71,12 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         if (isLoading) {
             if (inputMode === 'clone') return 'Analyzing & Cloning...';
             if (inputMode === 'modify') return 'Remixing...';
+            if (inputMode === 'blueprint') return 'Drafting Blueprint...';
             return 'Generating UI...';
         }
         if (inputMode === 'modify') return 'Remix HTML';
         if (inputMode === 'clone') return 'Clone Website';
+        if (inputMode === 'blueprint') return 'Generate Wireframe';
         return 'Build UI';
     }
     
@@ -101,34 +105,38 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {inputMode === 'description' && (
+                    {(inputMode === 'description' || inputMode === 'blueprint') && (
                         <>
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">1. Describe your UI idea</label>
+                                <label className="block text-sm font-bold mb-2 text-gray-200">
+                                    {inputMode === 'blueprint' ? '1. Describe the structure' : '1. Describe your UI idea'}
+                                </label>
                                 <textarea
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder="e.g., A sleek dark-mode fitness dashboard"
+                                    placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : "e.g., A sleek dark-mode fitness dashboard"}
                                     className="w-full h-32 p-4 bg-black/20 border border-brand-border/80 rounded-lg focus:ring-2 focus:ring-brand-primary transition duration-200 resize-none text-gray-200"
                                     disabled={isLoading}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">2. Choose a visual style</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {visualStyles.map((style) => (
-                                        <button
-                                            key={style}
-                                            onClick={() => setSelectedStyle(style)}
-                                            disabled={isLoading}
-                                            className={`px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 transform hover:scale-[1.02]
-                                                ${selectedStyle === style ? 'bg-brand-primary text-black' : 'bg-gray-700/50 hover:bg-gray-700'}`}
-                                        >
-                                            {style}
-                                        </button>
-                                    ))}
+                            {inputMode === 'description' && (
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 text-gray-200">2. Choose a visual style</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {visualStyles.map((style) => (
+                                            <button
+                                                key={style}
+                                                onClick={() => setSelectedStyle(style)}
+                                                disabled={isLoading}
+                                                className={`px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 transform hover:scale-[1.02]
+                                                    ${selectedStyle === style ? 'bg-brand-primary text-black' : 'bg-gray-700/50 hover:bg-gray-700'}`}
+                                            >
+                                                {style}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </>
                     )}
                     

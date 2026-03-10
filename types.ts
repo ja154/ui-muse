@@ -10,7 +10,7 @@ export enum VisualStyle {
     Vintage = 'Vintage & Retro'
 }
 
-export type InputMode = 'description' | 'modify' | 'clone';
+export type InputMode = 'description' | 'modify' | 'clone' | 'blueprint';
 
 export interface Template {
     id: string;

@@ -5,7 +5,7 @@ import InputPanel from './components/InputPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
-import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite } from './services/geminiService.ts';
+import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite, generateBlueprint } from './services/geminiService.ts';
 import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
@@ -20,6 +20,7 @@ const VISUAL_STYLES: VisualStyle[] = [
 ];
 
 const TEMPLATES: Template[] = [
+    { id: 'jengaui-wireframe', name: 'JengaUI Wireframe', prompt: 'A UI builder dashboard with a left panel for inputs (tabs for Describe, Blueprint, Remix, Clone), a right panel for outputs (tabs for Preview, Code, Prompt), and a bottom section for inspiration and history.', style: VisualStyle.Minimalist },
     { id: 'login-form', name: 'Minimalist Login Form', prompt: 'A clean, simple login form with email, password fields, and a submit button.', style: VisualStyle.Minimalist },
     { id: 'product-card', name: 'Cyberpunk Product Card', prompt: 'A futuristic product card with a holographic image placeholder, glowing text, and sharp angles.', style: VisualStyle.Cyberpunk },
     { id: 'pricing-table', name: 'Corporate Pricing Table', prompt: 'A professional pricing table with three tiers (Basic, Pro, Enterprise), feature lists, and clear call-to-action buttons.', style: VisualStyle.Corporate },
@@ -188,6 +189,17 @@ const App: React.FC = () => {
                     htmlOutput: html,
                     cssOutput: css,
                     groundingSources: sources,
+                }, ...prev.slice(0, 19)]);
+            } else if (inputMode === 'blueprint') {
+                const { html, css } = await generateBlueprint(userInput);
+                setHtmlOutput(html);
+                setCssOutput(css);
+                setHistory(prev => [{
+                    id: Date.now().toString(),
+                    input: `Blueprint: ${userInput}`,
+                    inputMode,
+                    htmlOutput: html,
+                    cssOutput: css,
                 }, ...prev.slice(0, 19)]);
             }
         } catch (err: any) {

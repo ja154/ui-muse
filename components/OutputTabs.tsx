@@ -5,6 +5,7 @@ import OutputPanelContent from './OutputPanel.tsx';
 import HtmlOutputPanelContent from './HtmlOutputPanel.tsx';
 import CssOutputPanelContent from './CssOutputPanel.tsx';
 import HtmlPreviewPanel from './HtmlPreviewPanel.tsx';
+import BlueprintWireframe from './BlueprintWireframe.tsx';
 import { 
     PhotoIcon, 
     SparkleIcon, 
@@ -58,7 +59,7 @@ const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources })
     );
 };
 
-type Tab = 'preview' | 'prompt' | 'code' | 'css';
+type Tab = 'preview' | 'prompt' | 'code' | 'css' | 'blueprint';
 type Viewport = 'mobile' | 'tablet' | 'desktop';
 
 const OutputTabs: React.FC<OutputTabsProps> = ({
@@ -130,10 +131,12 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const tabsConfig: { id: Tab; label: string; icon: React.FC<any> }[] = [];
     if (isModifyOrClone) {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: GlobeAltIcon });
+        tabsConfig.push({ id: 'blueprint', label: 'Blueprint', icon: PhotoIcon });
         tabsConfig.push({ id: 'code', label: 'HTML', icon: CodeBracketIcon });
         tabsConfig.push({ id: 'css', label: 'CSS', icon: SparkleIcon });
     } else {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: PhotoIcon });
+        tabsConfig.push({ id: 'blueprint', label: 'Blueprint', icon: PhotoIcon });
         tabsConfig.push({ id: 'prompt', label: 'Prompt', icon: SparkleIcon });
         tabsConfig.push({ id: 'code', label: 'HTML', icon: CodeBracketIcon });
         tabsConfig.push({ id: 'css', label: 'CSS', icon: SparkleIcon });
@@ -200,8 +203,13 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                              )}
                         </div>
                     </div>
-                    <div className="p-6 min-h-[500px] flex flex-col items-center justify-center animate-fade-in">
+                    <div className="p-6 min-h-[500px] w-full flex flex-col items-center justify-center animate-fade-in">
                         {activeTab === 'preview' && PreviewComponent}
+                        {activeTab === 'blueprint' && (
+                            <div className="w-full h-full min-h-[600px]">
+                                <BlueprintWireframe />
+                            </div>
+                        )}
                         {activeTab === 'prompt' && !isModifyOrClone && (
                             <OutputPanelContent prompt={generatedPrompt} isLoading={isLoading} error={errors.prompt || null} />
                         )}
