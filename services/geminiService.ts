@@ -75,8 +75,18 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
     }
 };
 
+const UI_UX_PRO_MAX_RULES = `
+CRITICAL UI/UX PRO MAX RULES:
+1. Icons: NEVER use emojis for structural icons. Use vector icons (e.g., Lucide, Phosphor, Heroicons). Ensure consistent sizing (e.g., 24px) and stroke width.
+2. Interaction: Use color, opacity, or elevation for hover/press states. DO NOT use layout-shifting transforms that move surrounding content.
+3. Touch Targets: Ensure all interactive elements have a minimum 44x44px tap area.
+4. Contrast & Theming: Maintain >=4.5:1 text contrast. Ensure borders and dividers are visible in both light and dark modes. Use semantic color tokens.
+5. Spacing & Layout: Use a strict 4px/8px spacing rhythm (e.g., p-2, p-4, gap-4). Keep predictable content widths and readable text measures (max-w-prose for long text).
+6. Accessibility: Ensure proper focus states, semantic HTML tags, and aria-labels for icon-only buttons.
+`;
+
 export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS. Also provide any necessary custom CSS for animations, keyframes, or specific styles not covered by Tailwind.";
+    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS. Also provide any necessary custom CSS for animations, keyframes, or specific styles not covered by Tailwind.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
 Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).`;
@@ -112,7 +122,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
 };
 
 export const modifyHtml = async (originalHtml: string, styleHtml: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.";
+    const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `
 Re-style the following "Original HTML" using the design language and Tailwind CSS classes from the "Style HTML".
 Preserve original content and improve accessibility.
@@ -151,7 +161,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
 };
 
 export const generateBlueprint = async (prompt: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = "You are an expert UX designer. Convert UI prompts into low-fidelity, structural wireframes/blueprints using HTML and Tailwind CSS. Focus on layout, hierarchy, and content placement. Use a grayscale palette, simple boxes, and placeholder text (Lorem Ipsum). Avoid high-fidelity styles, images, or complex colors.";
+    const systemInstruction = "You are an expert UX designer. Convert UI prompts into low-fidelity, structural wireframes/blueprints using HTML and Tailwind CSS. Focus on layout, hierarchy, and content placement. Use a grayscale palette, simple boxes, and placeholder text (Lorem Ipsum). Avoid high-fidelity styles, images, or complex colors.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `Convert this UI prompt into a clean, structural wireframe/blueprint using HTML and Tailwind CSS.
 **PROMPT:** ${prompt}
 Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed.`;
@@ -219,7 +229,9 @@ CRITICAL GUIDELINES:
 5. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
 6. COMPUTED STYLES: Use the provided computed styles (if any) as a baseline for fonts and colors.
 7. ASSETS: Ensure all image src attributes use absolute URLs from the original site or high-quality placeholders (e.g., picsum.photos). Do not use relative paths.
-8. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.`;
+8. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.
+
+${UI_UX_PRO_MAX_RULES}`;
 
     let userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
 Ensure the reconstruction is pixel-perfect and responsive.`;

@@ -40,25 +40,25 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTem
                                         <>
                                             <button 
                                                 onClick={() => onUse(generatedHtml, 'base')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors"
+                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
                                                 title="Use this as your base HTML"
                                                 >
-                                                 <CodeBracketIcon className="w-4 h-4"/> Use as Base
+                                                 <CodeBracketIcon className="w-5 h-5"/> Use as Base
                                             </button>
                                             <button
                                                  onClick={() => onUse(generatedHtml, 'style')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors"
+                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
                                                 title="Use this to style your HTML"
                                             >
-                                                <SparkleIcon className="w-4 h-4" /> Use for Style
+                                                <SparkleIcon className="w-5 h-5" /> Use for Style
                                             </button>
                                         </>
                                     ) : (
                                         <button 
                                             onClick={() => onGenerate(template.id, template.prompt, template.style)}
-                                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-black bg-brand-primary rounded-md shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 hover:scale-[1.03] transition-all duration-300"
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-bold text-black bg-brand-primary rounded-lg shadow-md hover:bg-brand-secondary transition-colors duration-200"
                                         >
-                                            <GenerateIcon className="w-4 h-4" /> Generate
+                                            <GenerateIcon className="w-5 h-5" /> Generate
                                         </button>
                                     )}
                                 </div>

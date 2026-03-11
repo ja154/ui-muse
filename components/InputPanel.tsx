@@ -97,7 +97,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         <button
                             key={tab.mode}
                             onClick={() => setInputMode(tab.mode as InputMode)}
-                            className={`flex-1 p-3 text-sm font-bold transition-all duration-300 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5'}`}
+                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5 hover:text-gray-200'}`}
                         >
                             {tab.label}
                         </button>
@@ -122,14 +122,14 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             {inputMode === 'description' && (
                                 <div>
                                     <label className="block text-sm font-bold mb-2 text-gray-200">2. Choose a visual style</label>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-2 gap-3">
                                         {visualStyles.map((style) => (
                                             <button
                                                 key={style}
                                                 onClick={() => setSelectedStyle(style)}
                                                 disabled={isLoading}
-                                                className={`px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 transform hover:scale-[1.02]
-                                                    ${selectedStyle === style ? 'bg-brand-primary text-black' : 'bg-gray-700/50 hover:bg-gray-700'}`}
+                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-lg transition-colors duration-200
+                                                    ${selectedStyle === style ? 'bg-brand-primary text-black shadow-md shadow-brand-primary/20' : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white'}`}
                                             >
                                                 {style}
                                             </button>
@@ -237,7 +237,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     <button
                         onClick={onGenerate}
                         disabled={isGenerateDisabled}
-                        className="w-full flex items-center justify-center gap-3 px-6 py-4 text-lg font-bold text-black bg-brand-primary rounded-lg shadow-lg hover:shadow-brand-primary/40 hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-black bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {getButtonIcon()}
                         {getButtonText()}

@@ -169,8 +169,8 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`px-4 py-2 text-xs font-bold rounded transition-all duration-300 ${
-                                        activeTab === tab.id ? 'text-black bg-brand-primary' : 'text-brand-muted hover:bg-white/5'
+                                    className={`px-4 py-3 min-h-[44px] text-sm font-bold rounded-lg transition-colors duration-200 ${
+                                        activeTab === tab.id ? 'text-black bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-white/10 hover:text-gray-200'
                                     }`}
                                 >
                                     {tab.label}
@@ -181,23 +181,23 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                         <div className="flex items-center gap-2">
                              {activeTab === 'preview' && !isLoading && htmlOutput && (
                                 <>
-                                    <div className="bg-black/20 rounded flex p-1 mr-2 border border-brand-border/30">
-                                        <button onClick={() => setViewport('mobile')} className={`p-1 transition-colors ${viewport === 'mobile' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-300'}`} title="Mobile View"><DevicePhoneMobileIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => setViewport('tablet')} className={`p-1 transition-colors ${viewport === 'tablet' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-300'}`} title="Tablet View"><DeviceTabletIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => setViewport('desktop')} className={`p-1 transition-colors ${viewport === 'desktop' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-300'}`} title="Desktop View"><ComputerDesktopIcon className="w-4 h-4"/></button>
+                                    <div className="bg-black/40 rounded-lg flex p-1 mr-2 border border-brand-border/50">
+                                        <button onClick={() => setViewport('mobile')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'mobile' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Mobile View"><DevicePhoneMobileIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setViewport('tablet')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'tablet' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Tablet View"><DeviceTabletIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setViewport('desktop')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'desktop' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Desktop View"><ComputerDesktopIcon className="w-5 h-5"/></button>
                                     </div>
                                     <button 
                                         onClick={handleOpenInNewTab} 
-                                        className="p-1.5 text-brand-muted hover:text-brand-primary transition-all duration-200 bg-white/5 rounded border border-brand-border/30 hover:border-brand-primary/50 group/tabbtn"
+                                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-brand-muted hover:text-brand-primary transition-colors duration-200 bg-white/5 rounded-lg border border-brand-border/50 hover:bg-white/10"
                                         title="Open in New Tab"
                                     >
-                                        <ArrowTopRightOnSquareIcon className="w-4 h-4 group-hover/tabbtn:scale-110" />
+                                        <ArrowTopRightOnSquareIcon className="w-5 h-5" />
                                     </button>
                                 </>
                              )}
                              {(activeTab === 'code' || activeTab === 'css') && (
-                                <button onClick={() => handleCopy(activeTab)} className="text-xs text-brand-muted hover:text-white flex items-center gap-1 px-2 py-1 bg-white/5 rounded border border-brand-border/30">
-                                    {copiedStates[activeTab] ? <CheckIcon className="w-3 h-3 text-green-400"/> : <CopyIcon className="w-3 h-3"/>}
+                                <button onClick={() => handleCopy(activeTab)} className="text-sm font-medium text-brand-muted hover:text-white flex items-center gap-2 px-4 py-2 min-h-[44px] bg-white/5 rounded-lg border border-brand-border/50 hover:bg-white/10 transition-colors">
+                                    {copiedStates[activeTab] ? <CheckIcon className="w-4 h-4 text-green-400"/> : <CopyIcon className="w-4 h-4"/>}
                                     {copiedStates[activeTab] ? 'Copied' : 'Copy'}
                                 </button>
                              )}

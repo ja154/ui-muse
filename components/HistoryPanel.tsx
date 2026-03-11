@@ -54,11 +54,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
             <div className="relative flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-100 font-mono tracking-tighter">HISTORY</h2>
-                    <button onClick={clearHistory} className="text-xs text-brand-muted hover:text-white transition-colors">Clear</button>
+                    <button onClick={clearHistory} className="text-sm font-medium text-brand-muted hover:text-white transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/5">Clear</button>
                 </div>
-                <div className="space-y-2 overflow-y-auto max-h-[400px] pr-2 scrollbar-hide">
+                <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 scrollbar-hide">
                     {history.map((item) => (
-                        <div key={item.id} className="p-3 bg-black/30 rounded-lg border border-brand-border/50 flex gap-3 items-center hover:bg-white/5 transition-all cursor-pointer group/item" onClick={() => loadHistoryItem(item)}>
+                        <div key={item.id} className="p-4 bg-black/30 rounded-xl border border-brand-border/50 flex gap-4 items-center hover:bg-white/5 transition-colors cursor-pointer group/item" onClick={() => loadHistoryItem(item)}>
                             {getThumbnail(item)}
                             <div className="flex-grow min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
