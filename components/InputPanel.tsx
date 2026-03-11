@@ -115,7 +115,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
                                     placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : "e.g., A sleek dark-mode fitness dashboard"}
-                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-gray-200 outline-none"
+                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-slate-200 outline-none placeholder:text-slate-500"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -128,8 +128,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                                 key={style}
                                                 onClick={() => setSelectedStyle(style)}
                                                 disabled={isLoading}
-                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-lg transition-colors duration-200
-                                                    ${selectedStyle === style ? 'bg-brand-primary text-black shadow-md shadow-brand-primary/20' : 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-colors duration-200
+                                                    ${selectedStyle === style ? 'bg-brand-primary text-slate-900 shadow-md shadow-brand-primary/20' : 'bg-brand-bg/60 text-slate-300 hover:bg-brand-border hover:text-white'}`}
                                             >
                                                 {style}
                                             </button>
@@ -148,7 +148,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
                                     placeholder="Paste HTML to modify..."
-                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none"
+                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl font-mono text-xs text-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-slate-500"
                                 />
                             </div>
                             <div>
@@ -157,7 +157,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
                                     placeholder="Paste HTML with desired styling..."
-                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg font-mono text-xs text-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none"
+                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl font-mono text-xs text-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-slate-500"
                                 />
                             </div>
                         </>
@@ -174,7 +174,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                         value={urlInput}
                                         onChange={(e) => setUrlInput(e.target.value)}
                                         placeholder="https://stripe.com"
-                                        className="w-full p-4 pl-12 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-gray-200 outline-none"
+                                        className="w-full p-4 pl-12 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-slate-200 outline-none placeholder:text-slate-500"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -227,7 +227,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}
                                     placeholder="Paste HTML, CSS, or any text content to provide more context..."
-                                    className="w-full h-32 p-4 bg-black/40 border border-brand-border/80 rounded-lg focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-gray-200 outline-none"
+                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-slate-200 outline-none placeholder:text-slate-500"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -237,7 +237,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     <button
                         onClick={onGenerate}
                         disabled={isGenerateDisabled}
-                        className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-black bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-slate-900 bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {getButtonIcon()}
                         {getButtonText()}

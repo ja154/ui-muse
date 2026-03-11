@@ -170,7 +170,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`px-4 py-3 min-h-[44px] text-sm font-bold rounded-lg transition-colors duration-200 ${
-                                        activeTab === tab.id ? 'text-black bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-white/10 hover:text-gray-200'
+                                        activeTab === tab.id ? 'text-slate-900 bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-white/10 hover:text-slate-200'
                                     }`}
                                 >
                                     {tab.label}
@@ -181,10 +181,10 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                         <div className="flex items-center gap-2">
                              {activeTab === 'preview' && !isLoading && htmlOutput && (
                                 <>
-                                    <div className="bg-black/40 rounded-lg flex p-1 mr-2 border border-brand-border/50">
-                                        <button onClick={() => setViewport('mobile')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'mobile' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Mobile View"><DevicePhoneMobileIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setViewport('tablet')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'tablet' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Tablet View"><DeviceTabletIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setViewport('desktop')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'desktop' ? 'text-brand-primary bg-white/5' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`} title="Desktop View"><ComputerDesktopIcon className="w-5 h-5"/></button>
+                                    <div className="bg-brand-bg/60 rounded-lg flex p-1 mr-2 border border-brand-border/50">
+                                        <button onClick={() => setViewport('mobile')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'mobile' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Mobile View"><DevicePhoneMobileIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setViewport('tablet')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'tablet' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Tablet View"><DeviceTabletIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setViewport('desktop')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'desktop' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Desktop View"><ComputerDesktopIcon className="w-5 h-5"/></button>
                                     </div>
                                     <button 
                                         onClick={handleOpenInNewTab} 

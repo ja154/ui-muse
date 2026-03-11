@@ -9,11 +9,11 @@ interface CssOutputPanelContentProps {
 
 const SkeletonLoader: React.FC = () => (
     <div className="space-y-4 animate-pulse-fast">
-        <div className="h-3 bg-gray-700 rounded w-1/4"></div>
-        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
-        <div className="h-3 bg-gray-700 rounded w-full"></div>
-        <div className="h-3 bg-gray-700 rounded w-3/4"></div>
-        <div className="h-3 bg-gray-700 rounded w-5/6"></div>
+        <div className="h-3 bg-slate-800 rounded w-1/4"></div>
+        <div className="h-3 bg-slate-800 rounded w-1/2"></div>
+        <div className="h-3 bg-slate-800 rounded w-full"></div>
+        <div className="h-3 bg-slate-800 rounded w-3/4"></div>
+        <div className="h-3 bg-slate-800 rounded w-5/6"></div>
     </div>
 );
 
@@ -28,8 +28,8 @@ const CssOutputPanelContent: React.FC<CssOutputPanelContentProps> = ({ css, isLo
         }
         if (css) {
             return (
-                <pre className="whitespace-pre-wrap break-words bg-black/40 p-4 rounded-lg border border-brand-border/80">
-                    <code className="font-mono text-xs text-blue-300">
+                <pre className="whitespace-pre-wrap break-words bg-brand-bg/60 p-4 rounded-xl border border-brand-border/80">
+                    <code className="font-mono text-xs text-cyan-300">
                         {css}
                     </code>
                 </pre>

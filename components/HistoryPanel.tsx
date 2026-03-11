@@ -53,16 +53,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
             <div className="relative flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-100 font-mono tracking-tighter">HISTORY</h2>
+                    <h2 className="text-xl font-bold text-slate-100 font-mono tracking-tighter">HISTORY</h2>
                     <button onClick={clearHistory} className="text-sm font-medium text-brand-muted hover:text-white transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/5">Clear</button>
                 </div>
                 <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 scrollbar-hide">
                     {history.map((item) => (
-                        <div key={item.id} className="p-4 bg-black/30 rounded-xl border border-brand-border/50 flex gap-4 items-center hover:bg-white/5 transition-colors cursor-pointer group/item" onClick={() => loadHistoryItem(item)}>
+                        <div key={item.id} className="p-4 bg-brand-bg/60 rounded-xl border border-brand-border/50 flex gap-4 items-center hover:bg-white/5 transition-colors cursor-pointer group/item" onClick={() => loadHistoryItem(item)}>
                             {getThumbnail(item)}
                             <div className="flex-grow min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <p className="text-xs font-bold text-gray-200 truncate">{item.inputMode === 'clone' ? (item.urlInput || 'Web Clone') : (item.input || 'New Project')}</p>
+                                    <p className="text-xs font-bold text-slate-200 truncate">{item.inputMode === 'clone' ? (item.urlInput || 'Web Clone') : (item.input || 'New Project')}</p>
                                     {getBadge(item)}
                                 </div>
                                 <p className="text-[10px] text-brand-muted truncate">

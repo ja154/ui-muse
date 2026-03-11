@@ -10,18 +10,18 @@ interface OutputPanelContentProps {
 const SkeletonLoader: React.FC = () => (
     <div className="space-y-6 animate-pulse-fast">
         <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-1/4"></div>
-            <div className="h-3 bg-gray-700 rounded w-full"></div>
-            <div className="h-3 bg-gray-700 rounded w-5/6"></div>
+            <div className="h-4 bg-slate-800 rounded w-1/4"></div>
+            <div className="h-3 bg-slate-800 rounded w-full"></div>
+            <div className="h-3 bg-slate-800 rounded w-5/6"></div>
         </div>
         <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-1/3"></div>
-            <div className="h-3 bg-gray-700 rounded w-full"></div>
-            <div className="h-3 bg-gray-700 rounded w-4/6"></div>
+            <div className="h-4 bg-slate-800 rounded w-1/3"></div>
+            <div className="h-3 bg-slate-800 rounded w-full"></div>
+            <div className="h-3 bg-slate-800 rounded w-4/6"></div>
         </div>
          <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-1/2"></div>
-            <div className="h-3 bg-gray-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-800 rounded w-1/2"></div>
+            <div className="h-3 bg-slate-800 rounded w-full"></div>
         </div>
     </div>
 );
@@ -40,9 +40,9 @@ const OutputPanelContent: React.FC<OutputPanelContentProps> = ({ prompt, isLoadi
                 if (line.startsWith('## ')) {
                     return <h3 key={index} className="text-lg font-semibold mt-4 mb-1 text-brand-primary">{line.substring(3)}</h3>;
                 }
-                return <p key={index} className="text-gray-300 leading-relaxed">{line}</p>;
+                return <p key={index} className="text-slate-300 leading-relaxed">{line}</p>;
             });
-            return <div className="prose prose-invert prose-p:text-gray-300 prose-headings:text-brand-primary prose-sm">{formattedPrompt}</div>;
+            return <div className="prose prose-invert prose-p:text-slate-300 prose-headings:text-brand-primary prose-sm">{formattedPrompt}</div>;
         }
         return <p className="text-brand-muted">Your UI Blueprint will appear here...</p>;
     };

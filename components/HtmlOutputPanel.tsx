@@ -9,13 +9,13 @@ interface HtmlOutputPanelContentProps {
 
 const SkeletonLoader: React.FC = () => (
     <div className="space-y-4 animate-pulse-fast">
-        <div className="h-3 bg-gray-700 rounded w-1/3"></div>
-        <div className="h-3 bg-gray-700 rounded w-full"></div>
-        <div className="h-3 bg-gray-700 rounded w-5/6"></div>
-        <div className="h-3 bg-gray-700 rounded w-full"></div>
-        <div className="h-3 bg-gray-700 rounded w-2/3"></div>
-        <div className="h-3 bg-gray-700 rounded w-4/6"></div>
-        <div className="h-3 bg-gray-700 rounded w-full"></div>
+        <div className="h-3 bg-slate-800 rounded w-1/3"></div>
+        <div className="h-3 bg-slate-800 rounded w-full"></div>
+        <div className="h-3 bg-slate-800 rounded w-5/6"></div>
+        <div className="h-3 bg-slate-800 rounded w-full"></div>
+        <div className="h-3 bg-slate-800 rounded w-2/3"></div>
+        <div className="h-3 bg-slate-800 rounded w-4/6"></div>
+        <div className="h-3 bg-slate-800 rounded w-full"></div>
     </div>
 );
 
@@ -30,8 +30,8 @@ const HtmlOutputPanelContent: React.FC<HtmlOutputPanelContentProps> = ({ html, i
         }
         if (html) {
             return (
-                <pre className="whitespace-pre-wrap break-words bg-black/40 p-4 rounded-lg border border-brand-border/80">
-                    <code className="font-mono text-xs text-gray-200">
+                <pre className="whitespace-pre-wrap break-words bg-brand-bg/60 p-4 rounded-xl border border-brand-border/80">
+                    <code className="font-mono text-xs text-slate-200">
                         {html}
                     </code>
                 </pre>
