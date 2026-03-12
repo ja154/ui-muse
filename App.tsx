@@ -57,6 +57,8 @@ const App: React.FC = () => {
     const [error, setError] = useState<{ prompt?: string, image?: string, html?: string, css?: string }>({});
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
+    const isInitialMount = React.useRef(true);
+    
     useEffect(() => {
         try {
             const storedHistory = localStorage.getItem('promptHistory');
@@ -69,6 +71,11 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        
         if (history.length > 0) {
             try {
                 localStorage.setItem('promptHistory', JSON.stringify(history));
@@ -93,6 +100,8 @@ const App: React.FC = () => {
                      }
                 }
             }
+        } else {
+            localStorage.removeItem('promptHistory');
         }
     }, [history]);
 

@@ -97,7 +97,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         <button
                             key={tab.mode}
                             onClick={() => setInputMode(tab.mode as InputMode)}
-                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5 hover:text-gray-200'}`}
+                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5 hover:text-slate-200'}`}
                         >
                             {tab.label}
                         </button>
@@ -108,7 +108,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {(inputMode === 'description' || inputMode === 'blueprint') && (
                         <>
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">
+                                <label className="block text-sm font-bold mb-2 text-slate-200">
                                     {inputMode === 'blueprint' ? '1. Describe the structure' : '1. Describe your UI idea'}
                                 </label>
                                 <textarea
@@ -121,7 +121,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
                             {inputMode === 'description' && (
                                 <div>
-                                    <label className="block text-sm font-bold mb-2 text-gray-200">2. Choose a visual style</label>
+                                    <label className="block text-sm font-bold mb-2 text-slate-200">2. Choose a visual style</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {visualStyles.map((style) => (
                                             <button
@@ -143,7 +143,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'modify' && (
                         <>
                             <div>
-                                 <label className="block text-sm font-bold mb-2 text-gray-200">1. Your Existing HTML</label>
+                                 <label className="block text-sm font-bold mb-2 text-slate-200">1. Your Existing HTML</label>
                                  <textarea
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
@@ -152,7 +152,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">2. Paste Style to Clone</label>
+                                <label className="block text-sm font-bold mb-2 text-slate-200">2. Paste Style to Clone</label>
                                 <textarea
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
@@ -166,7 +166,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'clone' && (
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">Enter Website URL</label>
+                                <label className="block text-sm font-bold mb-2 text-slate-200">Enter Website URL</label>
                                 <div className="relative">
                                     <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
                                     <input
@@ -181,7 +181,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200 flex items-center gap-2">
+                                <label className="block text-sm font-bold mb-2 text-slate-200 flex items-center gap-2">
                                     Add Visual Evidence
                                     <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Experimental</span>
                                 </label>
@@ -222,7 +222,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-gray-200">Paste Content</label>
+                                <label className="block text-sm font-bold mb-2 text-slate-200">Paste Content</label>
                                 <textarea
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}

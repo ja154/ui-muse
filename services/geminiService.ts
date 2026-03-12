@@ -2,7 +2,7 @@ import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { VisualStyle, GroundingSource } from '../types.ts';
 
 // Initializing the GoogleGenAI client with the API key from environment variables.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const getMimeType = (base64: string): string => {
     const match = base64.match(/^data:([^;]+);base64,/);

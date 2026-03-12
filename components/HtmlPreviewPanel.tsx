@@ -58,7 +58,7 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
             return (
                 <div className="w-full h-full bg-brand-surface border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center animate-pulse-fast">
                     <GlobeAltIcon className="w-16 h-16 mb-4 text-brand-border" />
-                    <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-4 bg-slate-800 rounded w-1/3"></div>
                 </div>
             );
         }
@@ -84,9 +84,9 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
         }
 
         return (
-            <div className="w-full h-full bg-black/20 border border-dashed border-brand-border/50 rounded-lg flex flex-col items-center justify-center text-brand-muted">
+            <div className="w-full h-full bg-brand-bg/60 border border-dashed border-brand-border/50 rounded-lg flex flex-col items-center justify-center text-brand-muted">
                 <GlobeAltIcon className="w-16 h-16 mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold text-gray-300">HTML Preview</h3>
+                <h3 className="text-lg font-semibold text-slate-300">HTML Preview</h3>
                 <p className="text-sm opacity-70">Your modified UI will be rendered here</p>
             </div>
         );
