@@ -16,6 +16,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, clearHistory, load
             case 'modify': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">REMIX</span>;
             case 'clone': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">CLONE</span>;
             case 'blueprint': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">BLUEPRINT</span>;
+            case 'design': return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">DESIGN</span>;
             default: return <span className="bg-white/5 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase">DESCRIBE</span>;
         }
     }

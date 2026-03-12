@@ -5,7 +5,8 @@ import InputPanel from './components/InputPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
-import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite, generateBlueprint } from './services/geminiService.ts';
+import WireframeEditor from './components/WireframeEditor.tsx';
+import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite, generateBlueprint, generateFromWireframe } from './services/geminiService.ts';
 import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
@@ -135,6 +136,30 @@ const App: React.FC = () => {
     }, []);
 
 
+    const handleGenerateFromWireframe = useCallback(async (base64Image: string) => {
+        resetOutputs();
+        try {
+            const { html, css } = await generateFromWireframe(base64Image);
+            setHtmlOutput(html);
+            setCssOutput(css);
+            setPreviewImage(base64Image); // Use the drawn wireframe as the preview image
+            setHistory(prev => [{
+                id: Date.now().toString(),
+                input: 'Interactive Wireframe',
+                inputMode: 'design',
+                previewImage: base64Image,
+                htmlOutput: html,
+                cssOutput: css,
+            }, ...prev.slice(0, 19)]);
+        } catch (err: any) {
+            console.error(err);
+            const errorMessage = err?.message || 'Generation failed';
+            setError({ html: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     const handleGenerate = useCallback(async () => {
         resetOutputs();
 
@@ -239,6 +264,8 @@ const App: React.FC = () => {
             setScreenshots(item.screenshots || []);
             setPastedContent(item.pastedContent || '');
             setGroundingSources(item.groundingSources || []);
+        } else if (item.inputMode === 'design') {
+            setPreviewImage(item.previewImage || null);
         }
     };
 
@@ -247,42 +274,62 @@ const App: React.FC = () => {
             <Header />
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up">
-                        <InputPanel
-                            inputMode={inputMode}
-                            setInputMode={setInputMode}
-                            userInput={userInput}
-                            setUserInput={setUserInput}
-                            urlInput={urlInput}
-                            setUrlInput={setUrlInput}
-                            screenshots={screenshots}
-                            setScreenshots={setScreenshots}
-                            pastedContent={pastedContent}
-                            setPastedContent={setPastedContent}
-                            htmlInput={htmlInput}
-                            setHtmlInput={setHtmlInput}
-                            cloneHtmlInput={cloneHtmlInput}
-                            setCloneHtmlInput={setCloneHtmlInput}
-                            selectedStyle={selectedStyle}
-                            setSelectedStyle={setSelectedStyle}
-                            visualStyles={VISUAL_STYLES}
-                            onGenerate={handleGenerate}
-                            isLoading={isLoading}
-                        />
-                    </div>
+                    {inputMode === 'design' ? (
+                        <div className="lg:col-span-5 animate-slide-up flex flex-col gap-8">
+                            <WireframeEditor onGenerate={handleGenerateFromWireframe} isGenerating={isLoading} setInputMode={setInputMode} />
+                            {(htmlOutput || isLoading) && (
+                                <OutputTabs
+                                    previewImage={previewImage}
+                                    generatedPrompt={generatedPrompt}
+                                    htmlOutput={htmlOutput}
+                                    cssOutput={cssOutput}
+                                    groundingSources={groundingSources}
+                                    isLoading={isLoading}
+                                    errors={error}
+                                    inputMode={inputMode}
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up">
+                                <InputPanel
+                                    inputMode={inputMode}
+                                    setInputMode={setInputMode}
+                                    userInput={userInput}
+                                    setUserInput={setUserInput}
+                                    urlInput={urlInput}
+                                    setUrlInput={setUrlInput}
+                                    screenshots={screenshots}
+                                    setScreenshots={setScreenshots}
+                                    pastedContent={pastedContent}
+                                    setPastedContent={setPastedContent}
+                                    htmlInput={htmlInput}
+                                    setHtmlInput={setHtmlInput}
+                                    cloneHtmlInput={cloneHtmlInput}
+                                    setCloneHtmlInput={setCloneHtmlInput}
+                                    selectedStyle={selectedStyle}
+                                    setSelectedStyle={setSelectedStyle}
+                                    visualStyles={VISUAL_STYLES}
+                                    onGenerate={handleGenerate}
+                                    isLoading={isLoading}
+                                />
+                            </div>
 
-                    <div className="lg:col-span-3 flex flex-col gap-8 animate-slide-up">
-                        <OutputTabs
-                            previewImage={previewImage}
-                            generatedPrompt={generatedPrompt}
-                            htmlOutput={htmlOutput}
-                            cssOutput={cssOutput}
-                            groundingSources={groundingSources}
-                            isLoading={isLoading}
-                            errors={error}
-                            inputMode={inputMode}
-                         />
-                    </div>
+                            <div className="lg:col-span-3 flex flex-col gap-8 animate-slide-up">
+                                <OutputTabs
+                                    previewImage={previewImage}
+                                    generatedPrompt={generatedPrompt}
+                                    htmlOutput={htmlOutput}
+                                    cssOutput={cssOutput}
+                                    groundingSources={groundingSources}
+                                    isLoading={isLoading}
+                                    errors={error}
+                                    inputMode={inputMode}
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
                 
                 <div className="mt-12 grid grid-cols-1 lg:grid-cols-5 gap-8 animate-slide-up">

@@ -196,6 +196,57 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
     }
 };
 
+export const generateFromWireframe = async (base64Image: string): Promise<{ html: string; css: string }> => {
+    const systemInstruction = `You are an expert UI/UX designer and Frontend Developer. Your mission is to transform a low-fidelity wireframe into a beautiful, high-fidelity, production-ready UI using HTML and Tailwind CSS.
+
+CRITICAL GUIDELINES:
+1. INTERPRET THE WIREFRAME: Understand the layout, hierarchy, and intent of the wireframe. Replace generic placeholders (like boxes with "IMAGE" or "TEXT") with appropriate, realistic content and high-quality placeholder images (e.g., using picsum.photos).
+2. ELEVATE THE DESIGN: Do not just make a gray box. Apply modern UI/UX principles, beautiful color palettes, typography, shadows, and spacing. Make it look like a premium product.
+3. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
+4. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
+
+${UI_UX_PRO_MAX_RULES}`;
+
+    const mimeType = getMimeType(base64Image);
+    const data = base64Image.split(',')[1] || base64Image;
+
+    const parts: any[] = [
+        { text: "Transform this wireframe into a high-fidelity, beautiful UI using HTML and Tailwind CSS. Add realistic placeholder content, modern styling, and ensure it is fully responsive." },
+        {
+            inlineData: {
+                data: data,
+                mimeType: mimeType
+            }
+        }
+    ];
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: { parts },
+            config: {
+                systemInstruction,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        html: { type: Type.STRING },
+                        css: { type: Type.STRING }
+                    },
+                    required: ['html', 'css']
+                }
+            },
+        });
+
+        const jsonResponse = JSON.parse(response.text || '{}');
+        return { html: jsonResponse.html || '', css: jsonResponse.css || '' };
+    } catch (error) {
+        console.error("Error generating from wireframe:", error);
+        throw error;
+    }
+};
+
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     let scrapedData: { html?: string; screenshot?: string; styles?: any } = {};
 

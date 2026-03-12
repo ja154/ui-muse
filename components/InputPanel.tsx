@@ -63,6 +63,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     const mainTabs = [
         { mode: 'description', label: 'Describe' },
         { mode: 'blueprint', label: 'Blueprint' },
+        { mode: 'design', label: 'Design' },
         { mode: 'modify', label: 'Remix' },
         { mode: 'clone', label: 'Clone Web' }
     ];
@@ -234,14 +235,28 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         </div>
                     )}
                     
-                    <button
-                        onClick={onGenerate}
-                        disabled={isGenerateDisabled}
-                        className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-slate-900 bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {getButtonIcon()}
-                        {getButtonText()}
-                    </button>
+                    {inputMode === 'design' && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mb-4">
+                                <GenerateIcon className="w-8 h-8 text-brand-primary" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-200 mb-2">Interactive Wireframe Editor</h3>
+                            <p className="text-slate-400 text-sm max-w-xs mx-auto mb-6">
+                                Use the full-screen canvas on the right to design your wireframe visually, then generate UI from it.
+                            </p>
+                        </div>
+                    )}
+                    
+                    {inputMode !== 'design' && (
+                        <button
+                            onClick={onGenerate}
+                            disabled={isGenerateDisabled}
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-slate-900 bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {getButtonIcon()}
+                            {getButtonText()}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

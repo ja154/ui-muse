@@ -76,7 +76,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const [copiedStates, setCopiedStates] = useState({ prompt: false, code: false, css: false });
     const [viewport, setViewport] = useState<Viewport>('desktop');
 
-    const isModifyOrClone = inputMode === 'modify' || inputMode === 'clone';
+    const isModifyOrClone = inputMode === 'modify' || inputMode === 'clone' || inputMode === 'design';
 
     useEffect(() => {
         if (isModifyOrClone && activeTab === 'prompt') {
@@ -131,7 +131,9 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
     const tabsConfig: { id: Tab; label: string; icon: React.FC<any> }[] = [];
     if (isModifyOrClone) {
         tabsConfig.push({ id: 'preview', label: 'Preview', icon: GlobeAltIcon });
-        tabsConfig.push({ id: 'blueprint', label: 'Blueprint', icon: PhotoIcon });
+        if (inputMode !== 'design') {
+            tabsConfig.push({ id: 'blueprint', label: 'Blueprint', icon: PhotoIcon });
+        }
         tabsConfig.push({ id: 'code', label: 'HTML', icon: CodeBracketIcon });
         tabsConfig.push({ id: 'css', label: 'CSS', icon: SparkleIcon });
     } else {
