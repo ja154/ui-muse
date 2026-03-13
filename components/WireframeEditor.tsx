@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Transformer, Group } from 'react-konva';
-import { v4 as uuidv4 } from 'uuid';
 import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate } from 'lucide-react';
 
 export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image';
@@ -28,7 +27,7 @@ interface WireframeEditorProps {
 const SHAPE_DEFAULTS = {
     rectangle: { width: 100, height: 100, fill: '#e2e8f0', stroke: '#94a3b8', cornerRadius: 0 },
     circle: { width: 100, height: 100, fill: '#e2e8f0', stroke: '#94a3b8' },
-    text: { width: 200, height: 50, fill: 'transparent', stroke: 'transparent', text: 'Double click to edit', fontSize: 16 },
+    text: { width: 200, height: 50, fill: 'transparent', stroke: 'transparent', text: 'Text element', fontSize: 16 },
     image: { width: 150, height: 150, fill: '#f1f5f9', stroke: '#cbd5e1' }, // Will draw a cross inside
 };
 
@@ -38,6 +37,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
     const [historyStep, setHistoryStep] = useState(0);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [tool, setTool] = useState<ToolType>('select');
+    const [isDrawing, setIsDrawing] = useState(false);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     
     const stageRef = useRef<any>(null);
@@ -66,17 +66,22 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
     };
 
     useEffect(() => {
-        const checkSize = () => {
-            if (containerRef.current) {
+        if (!containerRef.current) return;
+        
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (let entry of entries) {
                 setStageSize({
-                    width: containerRef.current.offsetWidth,
-                    height: containerRef.current.offsetHeight
+                    width: entry.contentRect.width,
+                    height: entry.contentRect.height
                 });
             }
+        });
+        
+        resizeObserver.observe(containerRef.current);
+        
+        return () => {
+            resizeObserver.disconnect();
         };
-        checkSize();
-        window.addEventListener('resize', checkSize);
-        return () => window.removeEventListener('resize', checkSize);
     }, []);
 
     useEffect(() => {
@@ -99,7 +104,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
         }
     };
 
-    const handleStageClick = (e: any) => {
+    const handleMouseDown = (e: any) => {
         if (tool !== 'select') {
             const stage = e.target.getStage();
             const pointerPosition = stage.getPointerPosition();
@@ -108,11 +113,18 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
 
             const defaults = SHAPE_DEFAULTS[tool as keyof typeof SHAPE_DEFAULTS];
             
+            const generateId = () => {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    return crypto.randomUUID();
+                }
+                return Math.random().toString(36).substring(2, 15);
+            };
+
             const newShape: ShapeData = {
-                id: uuidv4(),
+                id: generateId(),
                 type: tool,
-                x: pointerPosition.x - defaults.width / 2,
-                y: pointerPosition.y - defaults.height / 2,
+                x: pointerPosition.x,
+                y: pointerPosition.y,
                 width: defaults.width,
                 height: defaults.height,
                 fill: defaults.fill,
@@ -124,12 +136,39 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
 
             const newShapes = [...shapes, newShape];
             setShapes(newShapes);
-            saveHistory(newShapes);
             setSelectedId(newShape.id);
-            setTool('select'); // Revert to select tool after drawing
+            
+            if (tool === 'text') {
+                // Text doesn't need dragging to size, just click
+                saveHistory(newShapes);
+                setTool('select');
+            } else {
+                setIsDrawing(true);
+            }
         } else {
             checkDeselect(e);
         }
+    };
+
+    const handleMouseMove = (e: any) => {
+        if (!isDrawing || !selectedId) return;
+
+        const stage = e.target.getStage();
+        const pointerPosition = stage.getPointerPosition();
+        if (!pointerPosition) return;
+
+        const newShapes = shapes.map((shape) => {
+            if (shape.id === selectedId) {
+                return {
+                    ...shape,
+                    width: Math.max(5, pointerPosition.x - shape.x),
+                    height: Math.max(5, pointerPosition.y - shape.y),
+                };
+            }
+            return shape;
+        });
+
+        setShapes(newShapes);
     };
 
     const handleDragEnd = (e: any) => {
@@ -197,6 +236,27 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedId, shapes, history, historyStep]);
+
+    useEffect(() => {
+        const handleWindowMouseUp = () => {
+            if (isDrawing) {
+                setIsDrawing(false);
+                saveHistory(shapes);
+                setTool('select');
+            }
+        };
+
+        if (isDrawing) {
+            window.addEventListener('mouseup', handleWindowMouseUp);
+            window.addEventListener('touchend', handleWindowMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mouseup', handleWindowMouseUp);
+            window.removeEventListener('touchend', handleWindowMouseUp);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDrawing, shapes]);
 
     const updateSelectedShape = (updates: Partial<ShapeData>) => {
         if (!selectedId) return;
@@ -293,10 +353,11 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                     <Stage
                         width={stageSize.width}
                         height={stageSize.height}
-                        onMouseDown={handleStageClick}
-                        onTouchStart={handleStageClick}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
                         ref={stageRef}
-                        className="absolute inset-0"
                         style={{ cursor: tool === 'select' ? 'default' : 'crosshair' }}
                     >
                         <Layer>
