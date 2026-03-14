@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Transformer, Group, Image as KonvaImage } from 'react-konva';
-import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate, AppWindow, AlignLeft, MousePointerClick, Upload } from 'lucide-react';
+import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate, AppWindow, AlignLeft, MousePointerClick, Upload, TextCursorInput, CheckSquare, ToggleLeft, UserCircle, Minus } from 'lucide-react';
 import useImage from 'use-image';
 
 const URLImage = ({ image }: { image: ShapeData }) => {
@@ -17,7 +17,7 @@ const URLImage = ({ image }: { image: ShapeData }) => {
     );
 };
 
-export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image' | 'button' | 'paragraph' | 'browser';
+export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image' | 'button' | 'paragraph' | 'browser' | 'input' | 'checkbox' | 'toggle' | 'avatar' | 'divider';
 
 export interface ShapeData {
     id: string;
@@ -48,6 +48,11 @@ const SHAPE_DEFAULTS = {
     button: { width: 120, height: 40, fill: '#3b82f6', stroke: '#2563eb', text: 'Button', fontSize: 14, cornerRadius: 4 },
     paragraph: { width: 200, height: 60, fill: '#cbd5e1', stroke: 'transparent' },
     browser: { width: 600, height: 400, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 8 },
+    input: { width: 200, height: 40, fill: '#ffffff', stroke: '#cbd5e1', text: 'Input field', fontSize: 14, cornerRadius: 4 },
+    checkbox: { width: 20, height: 20, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 4 },
+    toggle: { width: 40, height: 20, fill: '#e2e8f0', stroke: '#cbd5e1', cornerRadius: 10 },
+    avatar: { width: 40, height: 40, fill: '#e2e8f0', stroke: '#cbd5e1' },
+    divider: { width: 200, height: 2, fill: '#cbd5e1', stroke: 'transparent' },
 };
 
 const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerating, setInputMode }) => {
@@ -339,7 +344,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Left Sidebar - Tools */}
-                <div className="w-14 bg-[#252525] border-r border-white/10 flex flex-col items-center py-3 gap-2 z-10">
+                <div className="w-14 bg-[#252525] border-r border-white/10 flex flex-col items-center py-3 gap-2 z-10 overflow-y-auto">
                     <button onClick={() => setTool('select')} className={`p-2.5 rounded-lg transition-colors ${tool === 'select' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Select (V)">
                         <MousePointer2 className="w-4 h-4" />
                     </button>
@@ -364,6 +369,22 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                     </button>
                     <button onClick={() => setTool('browser')} className={`p-2.5 rounded-lg transition-colors ${tool === 'browser' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Browser Window (W)">
                         <AppWindow className="w-4 h-4" />
+                    </button>
+                    <div className="w-6 h-px bg-white/10 my-1"></div>
+                    <button onClick={() => setTool('input')} className={`p-2.5 rounded-lg transition-colors ${tool === 'input' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Input Field">
+                        <TextCursorInput className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('checkbox')} className={`p-2.5 rounded-lg transition-colors ${tool === 'checkbox' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Checkbox">
+                        <CheckSquare className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('toggle')} className={`p-2.5 rounded-lg transition-colors ${tool === 'toggle' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Toggle Switch">
+                        <ToggleLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('avatar')} className={`p-2.5 rounded-lg transition-colors ${tool === 'avatar' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Avatar">
+                        <UserCircle className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('divider')} className={`p-2.5 rounded-lg transition-colors ${tool === 'divider' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Divider">
+                        <Minus className="w-4 h-4" />
                     </button>
                     <div className="w-6 h-px bg-white/10 my-1"></div>
                     <button onClick={handleUndo} disabled={historyStep === 0} className={`p-2.5 rounded-lg transition-colors text-slate-400 hover:bg-white/5 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed`} title="Undo">
@@ -626,6 +647,187 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                     );
                                 }
 
+                                if (shape.type === 'input') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                            onDblClick={() => {
+                                                if (tool === 'select') {
+                                                    setEditingTextId(shape.id);
+                                                }
+                                            }}
+                                            onDblTap={() => {
+                                                if (tool === 'select') {
+                                                    setEditingTextId(shape.id);
+                                                }
+                                            }}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Text
+                                                text={editingTextId === shape.id ? '' : shape.text}
+                                                width={shape.width - 20}
+                                                height={shape.height}
+                                                x={10}
+                                                y={0}
+                                                fill="#94a3b8"
+                                                fontSize={shape.fontSize}
+                                                align="left"
+                                                verticalAlign="middle"
+                                                fontFamily="Inter, sans-serif"
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'checkbox') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Text
+                                                text="✓"
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.stroke}
+                                                fontSize={shape.height * 0.8}
+                                                align="center"
+                                                verticalAlign="middle"
+                                                fontFamily="Inter, sans-serif"
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'toggle') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Circle
+                                                x={shape.height / 2}
+                                                y={shape.height / 2}
+                                                radius={shape.height / 2 - 2}
+                                                fill="#ffffff"
+                                                stroke={shape.stroke}
+                                                strokeWidth={1}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'avatar') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Circle
+                                                x={shape.width / 2}
+                                                y={shape.height / 2}
+                                                radius={Math.min(shape.width, shape.height) / 2}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                            />
+                                            <Circle
+                                                x={shape.width / 2}
+                                                y={shape.height / 2 - shape.height * 0.15}
+                                                radius={Math.min(shape.width, shape.height) * 0.2}
+                                                fill={shape.stroke}
+                                            />
+                                            <Circle
+                                                x={shape.width / 2}
+                                                y={shape.height / 2 + shape.height * 0.25}
+                                                radius={Math.min(shape.width, shape.height) * 0.3}
+                                                fill={shape.stroke}
+                                                scaleY={0.5}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'divider') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
                                 return null;
                             })}
                             <Transformer
@@ -665,13 +867,13 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                 border: 'none',
                                 padding: shapes.find(s => s.id === editingTextId)?.type === 'button' 
                                     ? `${((shapes.find(s => s.id === editingTextId)?.height || 0) - (shapes.find(s => s.id === editingTextId)?.fontSize || 0)) / 2}px 0` 
-                                    : 0,
+                                    : (shapes.find(s => s.id === editingTextId)?.type === 'input' ? `${((shapes.find(s => s.id === editingTextId)?.height || 0) - (shapes.find(s => s.id === editingTextId)?.fontSize || 0)) / 2}px 10px` : 0),
                                 margin: 0,
                                 overflow: 'hidden',
                                 background: 'none',
                                 outline: 'none',
                                 resize: 'none',
-                                color: shapes.find(s => s.id === editingTextId)?.type === 'button' ? '#ffffff' : '#0f172a',
+                                color: shapes.find(s => s.id === editingTextId)?.type === 'button' ? '#ffffff' : (shapes.find(s => s.id === editingTextId)?.type === 'input' ? '#94a3b8' : '#0f172a'),
                                 textAlign: shapes.find(s => s.id === editingTextId)?.type === 'button' ? 'center' : 'left',
                                 zIndex: 10,
                             }}
@@ -730,7 +932,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                 <div className="w-full h-px bg-white/5"></div>
 
                                 {/* Text specific */}
-                                {['text', 'button'].includes(selectedShape.type) && (
+                                {['text', 'button', 'input'].includes(selectedShape.type) && (
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] text-slate-500 font-medium mb-1.5 uppercase tracking-wider">Content</label>
@@ -827,7 +1029,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                                 />
                                             </div>
                                         </div>
-                                        {['rectangle', 'button', 'browser'].includes(selectedShape.type) && (
+                                        {['rectangle', 'button', 'browser', 'input', 'checkbox', 'toggle'].includes(selectedShape.type) && (
                                             <div className="flex items-center gap-2 pt-2">
                                                 <label className="text-[10px] text-slate-500 font-medium w-12">Radius</label>
                                                 <input 
