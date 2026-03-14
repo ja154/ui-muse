@@ -20,6 +20,7 @@
     "react-dom": "^19.1.0",
     "react-konva": "^19.2.3",
     "tsx": "^4.21.0",
+    "use-image": "^1.1.4",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

@@ -1,8 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Circle, Text, Transformer, Group } from 'react-konva';
-import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate } from 'lucide-react';
+import { Stage, Layer, Rect, Circle, Text, Transformer, Group, Image as KonvaImage } from 'react-konva';
+import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate, AppWindow, AlignLeft, MousePointerClick, Upload } from 'lucide-react';
+import useImage from 'use-image';
 
-export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image';
+const URLImage = ({ image }: { image: ShapeData }) => {
+    const [img] = useImage(image.imageUrl || '');
+    return (
+        <KonvaImage
+            image={img}
+            x={0}
+            y={0}
+            width={image.width}
+            height={image.height}
+            cornerRadius={4}
+        />
+    );
+};
+
+export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image' | 'button' | 'paragraph' | 'browser';
 
 export interface ShapeData {
     id: string;
@@ -16,6 +31,7 @@ export interface ShapeData {
     text?: string;
     fontSize?: number;
     cornerRadius?: number;
+    imageUrl?: string;
 }
 
 interface WireframeEditorProps {
@@ -29,6 +45,9 @@ const SHAPE_DEFAULTS = {
     circle: { width: 100, height: 100, fill: '#e2e8f0', stroke: '#94a3b8' },
     text: { width: 200, height: 50, fill: 'transparent', stroke: 'transparent', text: 'Text element', fontSize: 16 },
     image: { width: 150, height: 150, fill: '#f1f5f9', stroke: '#cbd5e1' }, // Will draw a cross inside
+    button: { width: 120, height: 40, fill: '#3b82f6', stroke: '#2563eb', text: 'Button', fontSize: 14, cornerRadius: 4 },
+    paragraph: { width: 200, height: 60, fill: '#cbd5e1', stroke: 'transparent' },
+    browser: { width: 600, height: 400, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 8 },
 };
 
 const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerating, setInputMode }) => {
@@ -36,6 +55,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
     const [history, setHistory] = useState<ShapeData[][]>([[]]);
     const [historyStep, setHistoryStep] = useState(0);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [editingTextId, setEditingTextId] = useState<string | null>(null);
     const [tool, setTool] = useState<ToolType>('select');
     const [isDrawing, setIsDrawing] = useState(false);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
@@ -173,14 +193,18 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
 
     const handleDragEnd = (e: any) => {
         const id = e.target.id();
-        const items = shapes.slice();
-        const item = items.find((i) => i.id === id);
-        if (item) {
-            item.x = e.target.x();
-            item.y = e.target.y();
-            setShapes(items);
-            saveHistory(items);
-        }
+        const newShapes = shapes.map((shape) => {
+            if (shape.id === id) {
+                return {
+                    ...shape,
+                    x: e.target.x(),
+                    y: e.target.y(),
+                };
+            }
+            return shape;
+        });
+        setShapes(newShapes);
+        saveHistory(newShapes);
     };
 
     const handleTransformEnd = (e: any) => {
@@ -193,16 +217,20 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
         node.scaleX(1);
         node.scaleY(1);
 
-        const items = shapes.slice();
-        const item = items.find((i) => i.id === selectedId);
-        if (item) {
-            item.x = node.x();
-            item.y = node.y();
-            item.width = Math.max(5, node.width() * scaleX);
-            item.height = Math.max(5, node.height() * scaleY);
-            setShapes(items);
-            saveHistory(items);
-        }
+        const newShapes = shapes.map((shape) => {
+            if (shape.id === selectedId) {
+                return {
+                    ...shape,
+                    x: node.x(),
+                    y: node.y(),
+                    width: Math.max(5, node.width() * scaleX),
+                    height: Math.max(5, node.height() * scaleY),
+                };
+            }
+            return shape;
+        });
+        setShapes(newShapes);
+        saveHistory(newShapes);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -328,6 +356,15 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                     <button onClick={() => setTool('image')} className={`p-2.5 rounded-lg transition-colors ${tool === 'image' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Image Placeholder (I)">
                         <ImageIcon className="w-4 h-4" />
                     </button>
+                    <button onClick={() => setTool('button')} className={`p-2.5 rounded-lg transition-colors ${tool === 'button' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Button (B)">
+                        <MousePointerClick className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('paragraph')} className={`p-2.5 rounded-lg transition-colors ${tool === 'paragraph' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Paragraph (P)">
+                        <AlignLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('browser')} className={`p-2.5 rounded-lg transition-colors ${tool === 'browser' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Browser Window (W)">
+                        <AppWindow className="w-4 h-4" />
+                    </button>
                     <div className="w-6 h-px bg-white/10 my-1"></div>
                     <button onClick={handleUndo} disabled={historyStep === 0} className={`p-2.5 rounded-lg transition-colors text-slate-400 hover:bg-white/5 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed`} title="Undo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
@@ -423,13 +460,15 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                             y={shape.y}
                                             width={shape.width}
                                             height={shape.height}
-                                            text={shape.text}
+                                            text={editingTextId === shape.id ? '' : shape.text}
                                             fontSize={shape.fontSize}
                                             fill="#0f172a"
                                             fontFamily="Inter, sans-serif"
                                             draggable={tool === 'select'}
                                             onClick={() => tool === 'select' && setSelectedId(shape.id)}
                                             onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDblClick={() => tool === 'select' && setEditingTextId(shape.id)}
+                                            onDblTap={() => tool === 'select' && setEditingTextId(shape.id)}
                                             onDragEnd={handleDragEnd}
                                             onTransformEnd={handleTransformEnd}
                                         />
@@ -449,25 +488,140 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                             onDragEnd={handleDragEnd}
                                             onTransformEnd={handleTransformEnd}
                                         >
+                                            {shape.imageUrl ? (
+                                                <URLImage image={shape} />
+                                            ) : (
+                                                <>
+                                                    <Rect
+                                                        width={shape.width}
+                                                        height={shape.height}
+                                                        fill={shape.fill}
+                                                        stroke={shape.stroke}
+                                                        dash={[4, 4]}
+                                                        cornerRadius={4}
+                                                    />
+                                                    <Text
+                                                        x={0}
+                                                        y={shape.height / 2 - 8}
+                                                        width={shape.width}
+                                                        text="IMAGE"
+                                                        align="center"
+                                                        fill="#94a3b8"
+                                                        fontSize={12}
+                                                        fontFamily="Inter, sans-serif"
+                                                        fontStyle="600"
+                                                    />
+                                                </>
+                                            )}
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'button') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDblClick={() => tool === 'select' && setEditingTextId(shape.id)}
+                                            onDblTap={() => tool === 'select' && setEditingTextId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
                                             <Rect
                                                 width={shape.width}
                                                 height={shape.height}
                                                 fill={shape.fill}
                                                 stroke={shape.stroke}
-                                                dash={[4, 4]}
-                                                cornerRadius={4}
+                                                cornerRadius={shape.cornerRadius}
                                             />
                                             <Text
-                                                x={0}
-                                                y={shape.height / 2 - 8}
                                                 width={shape.width}
-                                                text="IMAGE"
+                                                height={shape.height}
+                                                text={editingTextId === shape.id ? '' : shape.text}
+                                                fontSize={shape.fontSize}
+                                                fill="#ffffff"
                                                 align="center"
-                                                fill="#94a3b8"
-                                                fontSize={12}
+                                                verticalAlign="middle"
                                                 fontFamily="Inter, sans-serif"
-                                                fontStyle="600"
                                             />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'paragraph') {
+                                    const lineCount = Math.max(1, Math.floor(shape.height / 15));
+                                    const lines = [];
+                                    for (let i = 0; i < lineCount; i++) {
+                                        const lineWidth = i === lineCount - 1 && lineCount > 1 ? shape.width * 0.6 : shape.width;
+                                        lines.push(
+                                            <Rect
+                                                key={i}
+                                                y={i * 15}
+                                                width={lineWidth}
+                                                height={8}
+                                                fill={shape.fill}
+                                                cornerRadius={4}
+                                            />
+                                        );
+                                    }
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            {lines}
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'browser') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Rect
+                                                width={shape.width}
+                                                height={30}
+                                                fill="#f1f5f9"
+                                                stroke={shape.stroke}
+                                                cornerRadius={[shape.cornerRadius || 0, shape.cornerRadius || 0, 0, 0]}
+                                            />
+                                            <Circle x={15} y={15} radius={4} fill="#ef4444" />
+                                            <Circle x={30} y={15} radius={4} fill="#eab308" />
+                                            <Circle x={45} y={15} radius={4} fill="#22c55e" />
                                         </Group>
                                     );
                                 }
@@ -483,6 +637,46 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                             />
                         </Layer>
                     </Stage>
+                    {editingTextId && (
+                        <textarea
+                            autoFocus
+                            value={shapes.find(s => s.id === editingTextId)?.text || ''}
+                            onChange={(e) => {
+                                const newShapes = shapes.map(s => s.id === editingTextId ? { ...s, text: e.target.value } : s);
+                                setShapes(newShapes);
+                            }}
+                            onBlur={() => {
+                                saveHistory(shapes);
+                                setEditingTextId(null);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Escape') {
+                                    setEditingTextId(null);
+                                }
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: shapes.find(s => s.id === editingTextId)?.y,
+                                left: shapes.find(s => s.id === editingTextId)?.x,
+                                width: shapes.find(s => s.id === editingTextId)?.width,
+                                height: shapes.find(s => s.id === editingTextId)?.height,
+                                fontSize: shapes.find(s => s.id === editingTextId)?.fontSize,
+                                fontFamily: 'Inter, sans-serif',
+                                border: 'none',
+                                padding: shapes.find(s => s.id === editingTextId)?.type === 'button' 
+                                    ? `${((shapes.find(s => s.id === editingTextId)?.height || 0) - (shapes.find(s => s.id === editingTextId)?.fontSize || 0)) / 2}px 0` 
+                                    : 0,
+                                margin: 0,
+                                overflow: 'hidden',
+                                background: 'none',
+                                outline: 'none',
+                                resize: 'none',
+                                color: shapes.find(s => s.id === editingTextId)?.type === 'button' ? '#ffffff' : '#0f172a',
+                                textAlign: shapes.find(s => s.id === editingTextId)?.type === 'button' ? 'center' : 'left',
+                                zIndex: 10,
+                            }}
+                        />
+                    )}
                 </div>
 
                 {/* Right Sidebar - Properties */}
@@ -536,7 +730,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                 <div className="w-full h-px bg-white/5"></div>
 
                                 {/* Text specific */}
-                                {selectedShape.type === 'text' && (
+                                {['text', 'button'].includes(selectedShape.type) && (
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] text-slate-500 font-medium mb-1.5 uppercase tracking-wider">Content</label>
@@ -554,6 +748,40 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                                 onChange={(e) => updateSelectedShape({ fontSize: Number(e.target.value) })}
                                                 className="w-full bg-[#1e1e1e] border border-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:border-brand-primary outline-none transition-colors"
                                             />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Image specific */}
+                                {selectedShape.type === 'image' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 font-medium mb-1.5 uppercase tracking-wider">Image Source</label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onload = (event) => {
+                                                                updateSelectedShape({ imageUrl: event.target?.result as string });
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    id="image-upload"
+                                                />
+                                                <label
+                                                    htmlFor="image-upload"
+                                                    className="w-full flex items-center justify-center gap-2 bg-[#1e1e1e] border border-white/10 hover:border-brand-primary rounded px-2 py-1.5 text-xs text-slate-200 cursor-pointer transition-colors"
+                                                >
+                                                    <Upload className="w-3.5 h-3.5" />
+                                                    Upload Image
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -599,7 +827,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                                 />
                                             </div>
                                         </div>
-                                        {selectedShape.type === 'rectangle' && (
+                                        {['rectangle', 'button', 'browser'].includes(selectedShape.type) && (
                                             <div className="flex items-center gap-2 pt-2">
                                                 <label className="text-[10px] text-slate-500 font-medium w-12">Radius</label>
                                                 <input 
