@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Transformer, Group, Image as KonvaImage } from 'react-konva';
-import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate, AppWindow, AlignLeft, MousePointerClick, Upload, TextCursorInput, CheckSquare, ToggleLeft, UserCircle, Minus } from 'lucide-react';
+import { MousePointer2, Square, Circle as CircleIcon, Type, Image as ImageIcon, Trash2, Download, Sparkles, LayoutTemplate, AppWindow, AlignLeft, MousePointerClick, Upload, TextCursorInput, CheckSquare, ToggleLeft, UserCircle, Minus, CreditCard, Tag, ChevronRight, ListOrdered, Layout, FoldVertical, AlertCircle, Activity, SlidersHorizontal } from 'lucide-react';
 import useImage from 'use-image';
 
 const URLImage = ({ image }: { image: ShapeData }) => {
@@ -17,7 +17,7 @@ const URLImage = ({ image }: { image: ShapeData }) => {
     );
 };
 
-export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image' | 'button' | 'paragraph' | 'browser' | 'input' | 'checkbox' | 'toggle' | 'avatar' | 'divider';
+export type ToolType = 'select' | 'rectangle' | 'circle' | 'text' | 'image' | 'button' | 'paragraph' | 'browser' | 'input' | 'checkbox' | 'toggle' | 'avatar' | 'divider' | 'card' | 'badge' | 'breadcrumb' | 'pagination' | 'tabs' | 'accordion' | 'alert' | 'progress' | 'slider';
 
 export interface ShapeData {
     id: string;
@@ -53,6 +53,15 @@ const SHAPE_DEFAULTS = {
     toggle: { width: 40, height: 20, fill: '#e2e8f0', stroke: '#cbd5e1', cornerRadius: 10 },
     avatar: { width: 40, height: 40, fill: '#e2e8f0', stroke: '#cbd5e1' },
     divider: { width: 200, height: 2, fill: '#cbd5e1', stroke: 'transparent' },
+    card: { width: 250, height: 150, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 8 },
+    badge: { width: 60, height: 24, fill: '#e2e8f0', stroke: '#94a3b8', text: 'Badge', fontSize: 10, cornerRadius: 12 },
+    breadcrumb: { width: 200, height: 20, fill: 'transparent', stroke: 'transparent', text: 'Home / Category / Page', fontSize: 12 },
+    pagination: { width: 150, height: 32, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 4 },
+    tabs: { width: 300, height: 40, fill: '#f1f5f9', stroke: '#cbd5e1', cornerRadius: 4 },
+    accordion: { width: 300, height: 40, fill: '#ffffff', stroke: '#cbd5e1', cornerRadius: 4 },
+    alert: { width: 300, height: 60, fill: '#fef2f2', stroke: '#fecaca', cornerRadius: 6, text: 'Alert message', fontSize: 14 },
+    progress: { width: 200, height: 8, fill: '#e2e8f0', stroke: 'transparent', cornerRadius: 4 },
+    slider: { width: 200, height: 4, fill: '#e2e8f0', stroke: 'transparent', cornerRadius: 2 },
 };
 
 const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerating, setInputMode }) => {
@@ -385,6 +394,33 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                     </button>
                     <button onClick={() => setTool('divider')} className={`p-2.5 rounded-lg transition-colors ${tool === 'divider' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Divider">
                         <Minus className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('card')} className={`p-2.5 rounded-lg transition-colors ${tool === 'card' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Card">
+                        <CreditCard className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('badge')} className={`p-2.5 rounded-lg transition-colors ${tool === 'badge' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Badge">
+                        <Tag className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('breadcrumb')} className={`p-2.5 rounded-lg transition-colors ${tool === 'breadcrumb' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Breadcrumb">
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('pagination')} className={`p-2.5 rounded-lg transition-colors ${tool === 'pagination' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Pagination">
+                        <ListOrdered className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('tabs')} className={`p-2.5 rounded-lg transition-colors ${tool === 'tabs' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Tabs">
+                        <Layout className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('accordion')} className={`p-2.5 rounded-lg transition-colors ${tool === 'accordion' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Accordion">
+                        <FoldVertical className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('alert')} className={`p-2.5 rounded-lg transition-colors ${tool === 'alert' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Alert">
+                        <AlertCircle className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('progress')} className={`p-2.5 rounded-lg transition-colors ${tool === 'progress' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Progress Bar">
+                        <Activity className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setTool('slider')} className={`p-2.5 rounded-lg transition-colors ${tool === 'slider' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Slider">
+                        <SlidersHorizontal className="w-4 h-4" />
                     </button>
                     <div className="w-6 h-px bg-white/10 my-1"></div>
                     <button onClick={handleUndo} disabled={historyStep === 0} className={`p-2.5 rounded-lg transition-colors text-slate-400 hover:bg-white/5 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed`} title="Undo">
@@ -828,6 +864,293 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                     );
                                 }
 
+                                if (shape.type === 'card') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                                shadowBlur={4}
+                                                shadowOpacity={0.1}
+                                            />
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height * 0.4}
+                                                fill="#f8fafc"
+                                                cornerRadius={[shape.cornerRadius || 0, shape.cornerRadius || 0, 0, 0]}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'badge') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Text
+                                                width={shape.width}
+                                                height={shape.height}
+                                                text={shape.text}
+                                                fontSize={shape.fontSize}
+                                                fill="#475569"
+                                                align="center"
+                                                verticalAlign="middle"
+                                                fontFamily="Inter, sans-serif"
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'breadcrumb') {
+                                    return (
+                                        <Text
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            text={shape.text}
+                                            fontSize={shape.fontSize}
+                                            fill="#64748b"
+                                            fontFamily="Inter, sans-serif"
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        />
+                                    );
+                                }
+
+                                if (shape.type === 'pagination') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Group x={10} y={6}>
+                                                {[1, 2, 3].map((n, i) => (
+                                                    <Rect key={i} x={i * 24} width={20} height={20} fill={i === 0 ? '#3b82f6' : '#f1f5f9'} cornerRadius={2} />
+                                                ))}
+                                            </Group>
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'tabs') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Rect x={10} y={5} width={60} height={30} fill="#ffffff" cornerRadius={4} />
+                                            <Rect x={80} y={5} width={60} height={30} fill="transparent" />
+                                            <Rect x={150} y={5} width={60} height={30} fill="transparent" />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'accordion') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Text x={15} y={12} text="Accordion Item" fontSize={14} fill="#1e293b" />
+                                            <Rect x={shape.width - 30} y={15} width={10} height={10} fill="#94a3b8" />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'alert') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                stroke={shape.stroke}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Text
+                                                x={15}
+                                                y={0}
+                                                width={shape.width - 30}
+                                                height={shape.height}
+                                                text={shape.text}
+                                                fontSize={shape.fontSize}
+                                                fill="#991b1b"
+                                                verticalAlign="middle"
+                                                fontFamily="Inter, sans-serif"
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'progress') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Rect
+                                                width={shape.width * 0.6}
+                                                height={shape.height}
+                                                fill="#3b82f6"
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
+                                if (shape.type === 'slider') {
+                                    return (
+                                        <Group
+                                            key={shape.id}
+                                            id={shape.id}
+                                            x={shape.x}
+                                            y={shape.y}
+                                            width={shape.width}
+                                            height={shape.height}
+                                            draggable={tool === 'select'}
+                                            onClick={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onTap={() => tool === 'select' && setSelectedId(shape.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onTransformEnd={handleTransformEnd}
+                                        >
+                                            <Rect
+                                                width={shape.width}
+                                                height={shape.height}
+                                                fill={shape.fill}
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Rect
+                                                width={shape.width * 0.4}
+                                                height={shape.height}
+                                                fill="#3b82f6"
+                                                cornerRadius={shape.cornerRadius}
+                                            />
+                                            <Circle
+                                                x={shape.width * 0.4}
+                                                y={shape.height / 2}
+                                                radius={8}
+                                                fill="#ffffff"
+                                                stroke="#3b82f6"
+                                                strokeWidth={2}
+                                            />
+                                        </Group>
+                                    );
+                                }
+
                                 return null;
                             })}
                             <Transformer
@@ -932,7 +1255,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                 <div className="w-full h-px bg-white/5"></div>
 
                                 {/* Text specific */}
-                                {['text', 'button', 'input'].includes(selectedShape.type) && (
+                                {['text', 'button', 'input', 'badge', 'breadcrumb', 'alert'].includes(selectedShape.type) && (
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] text-slate-500 font-medium mb-1.5 uppercase tracking-wider">Content</label>
@@ -1029,7 +1352,7 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
                                                 />
                                             </div>
                                         </div>
-                                        {['rectangle', 'button', 'browser', 'input', 'checkbox', 'toggle'].includes(selectedShape.type) && (
+                                        {['rectangle', 'button', 'browser', 'input', 'checkbox', 'toggle', 'card', 'badge', 'pagination', 'tabs', 'accordion', 'alert', 'progress', 'slider'].includes(selectedShape.type) && (
                                             <div className="flex items-center gap-2 pt-2">
                                                 <label className="text-[10px] text-slate-500 font-medium w-12">Radius</label>
                                                 <input 

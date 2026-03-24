@@ -274,13 +274,14 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
 
 CRITICAL GUIDELINES:
 1. VISUAL ACCURACY IS PARAMOUNT: The provided screenshots are your absolute source of truth. If the scraped HTML structure conflicts with the visual appearance in the screenshot, ALWAYS prioritize the visual appearance. Do not invent elements not present in the screenshots.
-2. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px], text-[15px], leading-[1.2]) to match the source exactly where standard Tailwind classes fall short. Do not approximate colors, font sizes, or spacing.
-3. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
-4. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
-5. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
-6. COMPUTED STYLES: Use the provided computed styles (if any) as a baseline for fonts and colors.
-7. ASSETS: Ensure all image src attributes use absolute URLs from the original site or high-quality placeholders (e.g., picsum.photos). Do not use relative paths.
-8. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.
+2. FULL PAGE RECONSTRUCTION: Recreate the ENTIRE page as seen in the screenshots, including all sections (header, hero, content, footer). Ensure the output is a single, cohesive, and scrollable HTML document.
+3. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px], text-[15px], leading-[1.2]) to match the source exactly where standard Tailwind classes fall short. Do not approximate colors, font sizes, or spacing.
+4. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
+5. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
+6. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
+7. COMPUTED STYLES: Use the provided computed styles (if any) as a baseline for fonts and colors.
+8. ASSETS: Ensure all image src attributes use absolute URLs from the original site or high-quality placeholders (e.g., picsum.photos). Do not use relative paths.
+9. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.
 
 ${UI_UX_PRO_MAX_RULES}`;
 

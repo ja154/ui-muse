@@ -44,8 +44,8 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
                 </style>
                 <title>Preview</title>
             </head>
-            <body class="h-full">
-                <div class="h-full w-full flex items-center justify-center bg-white p-4">
+            <body class="bg-white">
+                <div class="w-full min-h-screen bg-white">
                   ${bodyContent}
                 </div>
             </body>
@@ -97,7 +97,7 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
     }
     
     return (
-        <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg">
+        <div className="w-full h-full rounded-lg overflow-auto shadow-lg bg-white">
             {content()}
         </div>
     );
