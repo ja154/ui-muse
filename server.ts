@@ -43,6 +43,27 @@ async function startServer() {
             // Navigate to the URL
             await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
+            // Scroll to bottom to trigger lazy loading
+            await page.evaluate(async () => {
+                await new Promise<void>((resolve) => {
+                    let totalHeight = 0;
+                    const distance = 100;
+                    const timer = setInterval(() => {
+                        const scrollHeight = document.body.scrollHeight;
+                        window.scrollBy(0, distance);
+                        totalHeight += distance;
+
+                        if (totalHeight >= scrollHeight) {
+                            clearInterval(timer);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            });
+
+            // Wait a bit for any lazy-loaded content to settle
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             // Extract data
             const title = await page.title();
             

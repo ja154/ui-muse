@@ -274,7 +274,7 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
 
 CRITICAL GUIDELINES:
 1. VISUAL ACCURACY IS PARAMOUNT: The provided screenshots are your absolute source of truth. If the scraped HTML structure conflicts with the visual appearance in the screenshot, ALWAYS prioritize the visual appearance. Do not invent elements not present in the screenshots.
-2. FULL PAGE RECONSTRUCTION: Recreate the ENTIRE page as seen in the screenshots, including all sections (header, hero, content, footer). Ensure the output is a single, cohesive, and scrollable HTML document.
+2. FULL PAGE RECONSTRUCTION: Recreate the ENTIRE page as seen in the screenshots, including all sections (header, hero, all body sections, and the FOOTER). Do not truncate the page. Ensure the output is a single, cohesive, and scrollable HTML document. If the page is long, continue generating until the footer is reached.
 3. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px], text-[15px], leading-[1.2]) to match the source exactly where standard Tailwind classes fall short. Do not approximate colors, font sizes, or spacing.
 4. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
 5. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
@@ -289,7 +289,8 @@ ${UI_UX_PRO_MAX_RULES}`;
 Ensure the reconstruction is pixel-perfect and responsive.`;
 
     if (scrapedData.html) {
-        userPrompt += `\n\nScraped HTML Structure (Reference):\n${scrapedData.html.substring(0, 15000)}... (truncated)`;
+        // Increase context to 30000 characters for more complex pages
+        userPrompt += `\n\nScraped HTML Structure (Reference):\n${scrapedData.html.substring(0, 30000)}... (truncated)`;
     }
 
     if (scrapedData.styles) {
@@ -335,6 +336,7 @@ Ensure the reconstruction is pixel-perfect and responsive.`;
                 tools: [{ googleSearch: {} }],
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
                 responseMimeType: 'application/json',
+                maxOutputTokens: 8192,
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
