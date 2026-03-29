@@ -1,0 +1,6 @@
+id,description,primary,secondary,accent,foreground,font_family,layout_type,sections
+1,Modern SaaS landing page with clean blue and white theme,Blue,Gray,Cyan,White,Inter,Standard,Hero,Features,CTA,Footer
+2,Dark mode developer portfolio with neon accents,Black,DarkGray,NeonGreen,White,Fira Code,Minimal,Hero,Projects,Contact,Footer
+3,Warm organic lifestyle blog with earthy tones,Cream,Olive,Brown,DarkBrown,Libre Baskerville,Editorial,Hero,Articles,Newsletter,Footer
+4,High-energy creative agency with bold typography,Orange,Black,Yellow,White,Anton,Brutalist,Hero,Work,Services,Footer
+5,Minimalist fintech app with trustworthy feel,White,LightGray,Navy,Black,SF Pro,Clean,Hero,Stats,Security,Footer

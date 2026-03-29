@@ -37,6 +37,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     const isGenerateDisabled = isLoading || (
         (inputMode === 'description' && !userInput.trim()) ||
         (inputMode === 'blueprint' && !userInput.trim()) ||
+        (inputMode === 'design-system' && !userInput.trim()) ||
         (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
         (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
     );
@@ -63,6 +64,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     const mainTabs = [
         { mode: 'description', label: 'Describe' },
         { mode: 'blueprint', label: 'Blueprint' },
+        { mode: 'design-system', label: 'Design System' },
         { mode: 'design', label: 'Design' },
         { mode: 'modify', label: 'Remix' },
         { mode: 'clone', label: 'Clone Web' }
@@ -73,11 +75,13 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             if (inputMode === 'clone') return 'Analyzing & Cloning...';
             if (inputMode === 'modify') return 'Remixing...';
             if (inputMode === 'blueprint') return 'Drafting Blueprint...';
+            if (inputMode === 'design-system') return 'Generating System...';
             return 'Generating UI...';
         }
         if (inputMode === 'modify') return 'Remix HTML';
         if (inputMode === 'clone') return 'Clone Website';
         if (inputMode === 'blueprint') return 'Generate Wireframe';
+        if (inputMode === 'design-system') return 'Generate Design System';
         return 'Build UI';
     }
     
@@ -85,6 +89,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         if (isLoading) return <LoadingSpinner className="-ml-1 mr-3 h-5 w-5 text-black" />;
         if (inputMode === 'modify') return <CodeBracketIcon className="w-6 h-6" />;
         if (inputMode === 'clone') return <GlobeAltIcon className="w-6 h-6" />;
+        if (inputMode === 'design-system') return <GenerateIcon className="w-6 h-6" />;
         return <GenerateIcon className="w-6 h-6" />;
     }
 
@@ -106,16 +111,20 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {(inputMode === 'description' || inputMode === 'blueprint') && (
+                    {(inputMode === 'description' || inputMode === 'blueprint' || inputMode === 'design-system') && (
                         <>
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-slate-200">
-                                    {inputMode === 'blueprint' ? '1. Describe the structure' : '1. Describe your UI idea'}
+                                    {inputMode === 'blueprint' ? '1. Describe the structure' : 
+                                     inputMode === 'design-system' ? '1. Describe your brand or product' : 
+                                     '1. Describe your UI idea'}
                                 </label>
                                 <textarea
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : "e.g., A sleek dark-mode fitness dashboard"}
+                                    placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : 
+                                                 inputMode === 'design-system' ? "e.g., A modern fintech app for Gen Z with a focus on trust and speed" :
+                                                 "e.g., A sleek dark-mode fitness dashboard"}
                                     className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-slate-200 outline-none placeholder:text-slate-500"
                                     disabled={isLoading}
                                 />

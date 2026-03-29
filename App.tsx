@@ -6,7 +6,16 @@ import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
 import WireframeEditor from './components/WireframeEditor.tsx';
-import { enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite, generateBlueprint, generateFromWireframe } from './services/geminiService.ts';
+import { 
+    enhancePrompt, 
+    generateImagePreview, 
+    modifyHtml, 
+    generateHtmlFromPrompt, 
+    cloneWebsite, 
+    generateBlueprint, 
+    generateFromWireframe,
+    generateDesignSystem
+} from './services/geminiService.ts';
 import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
@@ -235,6 +244,33 @@ const App: React.FC = () => {
                     htmlOutput: html,
                     cssOutput: css,
                 }, ...prev.slice(0, 19)]);
+            } else if (inputMode === 'design-system') {
+                const designSystem = await generateDesignSystem(userInput);
+                
+                // Now use the design system to generate a prompt for Gemini
+                const systemPrompt = `Generate a high-fidelity UI based on this design system:
+                - Primary Color: ${designSystem.primary_color}
+                - Secondary Color: ${designSystem.secondary_color}
+                - Accent Color: ${designSystem.accent_color}
+                - Foreground Color: ${designSystem.foreground_color}
+                - Font Family: ${designSystem.font_family}
+                - Layout Type: ${designSystem.layout_type}
+                - Sections: ${designSystem.sections.join(', ')}
+                
+                The user wants: ${userInput}`;
+                
+                const { html, css } = await generateHtmlFromPrompt(systemPrompt);
+                setHtmlOutput(html);
+                setCssOutput(css);
+                setGeneratedPrompt(systemPrompt);
+                
+                setHistory(prev => [{
+                    id: Date.now().toString(),
+                    input: `Design System: ${userInput}`,
+                    inputMode,
+                    htmlOutput: html,
+                    cssOutput: css,
+                }, ...prev.slice(0, 19)]);
             }
         } catch (err: any) {
             console.error(err);
@@ -264,6 +300,8 @@ const App: React.FC = () => {
             setScreenshots(item.screenshots || []);
             setPastedContent(item.pastedContent || '');
             setGroundingSources(item.groundingSources || []);
+        } else if (item.inputMode === 'design-system') {
+            setUserInput(item.input.replace('Design System: ', '') || '');
         } else if (item.inputMode === 'design') {
             setPreviewImage(item.previewImage || null);
         }

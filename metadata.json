@@ -1,6 +1,6 @@
 {
-  "name": "JengaUI: AI-Powered UI Builder",
-  "description": "An intelligent tool that helps you build and remix UI components. Describe your idea to generate a UI blueprint, an image preview, and functional HTML with Tailwind CSS, or remix existing code with a new style.",
+  "name": "JengaUI: AI-Powered UI Builder & Design System Generator",
+  "description": "An intelligent tool that helps you build and remix UI components. Generate design systems from brand descriptions, create UI blueprints, image previews, and functional HTML with Tailwind CSS, or clone and remix existing websites.",
   "requestFramePermissions": [],
   "prompt": ""
 }

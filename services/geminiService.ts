@@ -4,6 +4,121 @@ import { VisualStyle, GroundingSource } from '../types.ts';
 // Initializing the GoogleGenAI client with the API key from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// ─── constants ────────────────────────────────────────────────────────────────
+const CLONE_MODEL = 'gemini-3.1-pro-preview'; 
+const MAX_TOKENS = 32768;                       // was 8192 — critical fix
+const HTML_CONTEXT_CHARS = 40_000;              // scraped HTML context window
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Strip the data-URI prefix from a base64 string so it can be sent as
+ * inlineData.data (which must be raw base64, not a data URI).
+ */
+function stripDataUriPrefix(b64: string): string {
+    const commaIdx = b64.indexOf(',');
+    return commaIdx !== -1 ? b64.slice(commaIdx + 1) : b64;
+}
+
+/**
+ * Truncate HTML context at a safe tag boundary so the model never receives
+ * a broken mid-tag string. Returns the truncated string without any trailing
+ * ellipsis (which confuses the model into thinking the page is partially done).
+ */
+function safeHtmlTruncate(html: string, maxChars: number): string {
+    if (html.length <= maxChars) return html;
+    const slice = html.slice(0, maxChars);
+    // Walk back to the last complete closing tag
+    const lastClose = slice.lastIndexOf('>');
+    return lastClose !== -1 ? slice.slice(0, lastClose + 1) : slice;
+}
+
+/**
+ * Extract JSON from model output robustly:
+ *   1. Try direct parse
+ *   2. Strip markdown fences (```json ... ```) then parse
+ *   3. Extract the first {...} block via regex then parse
+ *   4. Return null if all attempts fail
+ */
+function extractJson(raw: string): { html: string; css: string } | null {
+    const attempts: string[] = [
+        raw.trim(),
+        raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim(),
+        (() => {
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            return start !== -1 && end > start ? raw.slice(start, end + 1) : '';
+        })(),
+    ];
+
+    for (const attempt of attempts) {
+        if (!attempt) continue;
+        try {
+            const parsed = JSON.parse(attempt);
+            if (typeof parsed.html === 'string') return parsed;
+        } catch {
+            // try next
+        }
+    }
+
+    // Last resort: regex-extract html and css fields individually
+    const htmlMatch = raw.match(/"html"\s*:\s*"([\s\S]*?)(?<!\\)",\s*"css"/);
+    const cssMatch  = raw.match(/"css"\s*:\s*"([\s\S]*?)(?<!\\)"[\s\n]*\}/);
+    if (htmlMatch) {
+        return {
+            html: htmlMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'),
+            css:  cssMatch  ? cssMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\') : '',
+        };
+    }
+
+    return null;
+}
+
+/**
+ * Check whether a generated HTML string is complete (ends with </html>).
+ */
+function isHtmlComplete(html: string): boolean {
+    return /<\/html\s*>/i.test(html.trimEnd());
+}
+
+/**
+ * Request a continuation from the model when the first pass was truncated.
+ * Sends the partial HTML back and asks the model to complete it from where
+ * it left off, returning only the remaining HTML (no JSON wrapper).
+ */
+async function requestContinuation(
+    partialHtml: string,
+    originalPrompt: string,
+): Promise<string> {
+    const continuationSystem = `You are completing a partially generated HTML page.
+You will receive the HTML generated so far. Continue from EXACTLY where it left
+off and complete the page through to </html>. Output ONLY the continuation HTML
+— no JSON, no fences, no repetition of what was already generated.
+MANDATORY: Your output must end with </footer></body></html>.`;
+
+    const continuationPrompt = `${originalPrompt}
+
+The previous generation was cut off. Here is what was generated so far:
+--- PARTIAL HTML (continue from here) ---
+${partialHtml.slice(-8000)}
+--- END OF PARTIAL ---
+
+Complete the remaining HTML now, starting from where it cut off.
+You MUST include the footer section and close all open tags before </body></html>.`;
+
+    const response = await ai.models.generateContent({
+        model: CLONE_MODEL,
+        contents: { role: 'user', parts: [{ text: continuationPrompt }] },
+        config: {
+            systemInstruction: continuationSystem,
+            maxOutputTokens: MAX_TOKENS,
+            temperature: 0.1,
+        },
+    });
+
+    return response.text ?? '';
+}
+
 const getMimeType = (base64: string): string => {
     const match = base64.match(/^data:([^;]+);base64,/);
     return match ? match[1] : 'image/png';
@@ -247,96 +362,125 @@ ${UI_UX_PRO_MAX_RULES}`;
     }
 };
 
+export const generateDesignSystem = async (query: string): Promise<any> => {
+    try {
+        const response = await fetch('/api/design-system', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to generate design system: ${errorText}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error("Error generating design system:", error);
+        throw error;
+    }
+};
+
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
-    let scrapedData: { html?: string; screenshot?: string; styles?: any } = {};
+    // ── 1. Scrape the target URL ──────────────────────────────────────────────
+    let scrapedData: { html?: string; screenshot?: string; title?: string; cssVariables?: any } = {};
 
     if (url) {
         try {
             console.log(`Scraping URL: ${url}`);
-            const response = await fetch('/api/scrape', {
+            const scrapeResponse = await fetch('/api/scrape', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })
             });
-            
-            if (response.ok) {
-                scrapedData = await response.json();
+            if (scrapeResponse.ok) {
+                scrapedData = await scrapeResponse.json();
                 console.log('Scraping successful');
             } else {
-                console.warn('Scraping failed:', await response.text());
+                console.warn('[cloneWebsite] Scraper returned', scrapeResponse.status);
             }
-        } catch (error) {
-            console.error('Error calling scrape API:', error);
+        } catch (err) {
+            console.warn('[cloneWebsite] Scraper failed, continuing without HTML context:', err);
         }
     }
 
-    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor. Your mission is to recreate a website's UI with extreme visual fidelity using HTML and Tailwind CSS.
+    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor.
 
-CRITICAL GUIDELINES:
-1. VISUAL ACCURACY IS PARAMOUNT: The provided screenshots are your absolute source of truth. If the scraped HTML structure conflicts with the visual appearance in the screenshot, ALWAYS prioritize the visual appearance. Do not invent elements not present in the screenshots.
-2. FULL PAGE RECONSTRUCTION: Recreate the ENTIRE page as seen in the screenshots, including all sections (header, hero, all body sections, and the FOOTER). Do not truncate the page. Ensure the output is a single, cohesive, and scrollable HTML document. If the page is long, continue generating until the footer is reached.
-3. TAILWIND PRECISION: Use arbitrary values (e.g., bg-[#00F2EA], p-[23px], text-[15px], leading-[1.2]) to match the source exactly where standard Tailwind classes fall short. Do not approximate colors, font sizes, or spacing.
-4. COMPONENT STRUCTURE: Replicate the visual hierarchy (navigation, hero, features, footer) as seen in the images.
-5. ASSET DISCOVERY: Use the provided URL and Google Search to find official logos, brand colors, and font names.
-6. PASTED CONTENT: Use any provided pasted content (HTML, CSS, text) as additional context or evidence for the reconstruction.
-7. COMPUTED STYLES: Use the provided computed styles (if any) as a baseline for fonts and colors.
-8. ASSETS: Ensure all image src attributes use absolute URLs from the original site or high-quality placeholders (e.g., picsum.photos). Do not use relative paths.
-9. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content (divs, sections, etc.). The 'css' field should contain any custom CSS needed.
+Your task: reproduce the provided website as a single self-contained HTML file
+with an embedded <style> block. The output must cover the COMPLETE PAGE from the
+very first element to the very last — including NAVIGATION, HERO, ALL SECTIONS,
+and the FOOTER with all its columns, links, and copyright line.
+
+MANDATORY RULES:
+1. Output ONLY valid JSON. No markdown fences, no prose, no comments outside JSON.
+2. JSON schema: { "html": "<full HTML string>", "css": "<all CSS as a string>" }
+3. The html value MUST end with </html>. Never truncate.
+4. Reproduce every visible section. If you are running low on space, compress
+   whitespace and shorten comments — but NEVER omit the footer or any section.
+5. Use semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
+6. Inline all CSS inside a <style> tag in <head>. The css field may be empty "".
+7. Use CSS custom properties (variables) for all colors and spacing.
+8. All interactive elements must have cursor:pointer and visible focus states.
+9. The footer must contain: logo/brand, navigation columns, social links, and
+   a copyright line with the current year.
+10. NEVER stop generating before the closing </html> tag.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
-    let userPrompt = `Reconstruct the website ${url ? `at ${url}` : 'from the provided screenshots'}. 
-Ensure the reconstruction is pixel-perfect and responsive.`;
+    // ── 2. Build the prompt ───────────────────────────────────────────────────
+    let userPrompt = url
+        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page.`
+        : `Reconstruct the website shown in the provided screenshots as a complete HTML page.`;
 
-    if (scrapedData.html) {
-        // Increase context to 30000 characters for more complex pages
-        userPrompt += `\n\nScraped HTML Structure (Reference):\n${scrapedData.html.substring(0, 30000)}... (truncated)`;
+    if (scrapedData.title) {
+        userPrompt += `\nPage title: "${scrapedData.title}"`;
     }
 
-    if (scrapedData.styles) {
-        userPrompt += `\n\nComputed Styles (Reference):\n${JSON.stringify(scrapedData.styles, null, 2)}`;
+    if (scrapedData.html) {
+        // FIX: safe truncation — never mid-tag, no trailing "..." that confuses the model
+        const safeHtml = safeHtmlTruncate(scrapedData.html, HTML_CONTEXT_CHARS);
+        userPrompt += `\n\nScraped HTML Structure (for structure/content reference):\n${safeHtml}`;
+    }
+
+    if (scrapedData.cssVariables) {
+        userPrompt += `\n\nCSS Custom Properties (Reference):\n${JSON.stringify(scrapedData.cssVariables, null, 2)}`;
     }
 
     if (pastedContent.trim()) {
-        userPrompt += `\n\nAdditional Context/Evidence provided by user:\n${pastedContent}`;
+        userPrompt += `\n\nAdditional context provided by user:\n${pastedContent.trim()}`;
     }
 
+    userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }`;
+
+    // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
-    
-    // Add scraped screenshot first (high priority)
-    if (scrapedData.screenshot) {
-        const mimeType = getMimeType(scrapedData.screenshot);
-        const data = scrapedData.screenshot.split(',')[1] || scrapedData.screenshot;
-        parts.push({
-            inlineData: {
-                data: data,
-                mimeType: mimeType
-            }
-        });
+
+    // FIX: strip data-URI prefix — inlineData.data must be raw base64
+    const allScreenshots = [
+        ...(scrapedData.screenshot ? [scrapedData.screenshot] : []),
+        ...screenshots,
+    ];
+
+    for (const shot of allScreenshots) {
+        const rawB64 = stripDataUriPrefix(shot);
+        if (rawB64) {
+            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+        }
     }
 
-    // Add user screenshots
-    for (const base64 of screenshots) {
-        const mimeType = getMimeType(base64);
-        const data = base64.split(',')[1] || base64;
-        parts.push({
-            inlineData: {
-                data: data,
-                mimeType: mimeType
-            }
-        });
-    }
-
+    // ── 4. First-pass generation ──────────────────────────────────────────────
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: { parts },
+        const firstResponse = await ai.models.generateContent({
+            model: CLONE_MODEL,
+            contents: { role: 'user', parts },
             config: {
                 systemInstruction,
                 tools: [{ googleSearch: {} }],
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                maxOutputTokens: MAX_TOKENS,  // FIX: was 8192
+                temperature: 0.15,            // low temperature for faithful reconstruction
                 responseMimeType: 'application/json',
-                maxOutputTokens: 8192,
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
@@ -348,12 +492,46 @@ Ensure the reconstruction is pixel-perfect and responsive.`;
             },
         });
 
-        const jsonResponse = JSON.parse(response.text || '{}');
-        const html = jsonResponse.html || '';
-        const css = jsonResponse.css || '';
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const rawText = firstResponse.text ?? '';
+        let parsed = extractJson(rawText);
+
+        if (!parsed) {
+            console.error('[cloneWebsite] Failed to parse Gemini response. Raw (first 500):', rawText.slice(0, 500));
+            throw new Error('Gemini returned an unparseable response. Please try again.');
+        }
+
+        // ── 5. Continuation pass if HTML was truncated ────────────────────────────
+        if (!isHtmlComplete(parsed.html)) {
+            console.warn('[cloneWebsite] HTML truncated — requesting continuation pass...');
+            try {
+                const continuation = await requestContinuation(parsed.html, userPrompt);
+                // Splice: find where the partial ended and where continuation picks up
+                const overlapCheck = parsed.html.slice(-200).trim();
+                const contTrimmed  = continuation.trimStart();
+                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
+                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
+                } else {
+                    parsed.html += contTrimmed;
+                }
+
+                if (!isHtmlComplete(parsed.html)) {
+                    // Force-close any dangling open structure
+                    parsed.html = parsed.html.trimEnd();
+                    if (!parsed.html.endsWith('</footer>')) parsed.html += '\n</footer>';
+                    if (!parsed.html.includes('</body>'))   parsed.html += '\n</body>';
+                    if (!parsed.html.includes('</html>'))   parsed.html += '\n</html>';
+                }
+            } catch (contErr) {
+                console.error('[cloneWebsite] Continuation pass failed:', contErr);
+                // Force-close gracefully rather than serving a broken page
+                parsed.html = parsed.html.trimEnd()
+                    + '\n<!-- generation was truncated -->\n</section></main></body></html>';
+            }
+        }
+
+        const sources = firstResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         
-        return { html, css, sources };
+        return { html: parsed.html, css: parsed.css ?? '', sources };
     } catch (error) {
         console.error("Error cloning website:", error);
         throw error;

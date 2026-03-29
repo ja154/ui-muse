@@ -12,106 +12,190 @@ async function startServer() {
 
     // API Routes
     app.post('/api/scrape', async (req, res) => {
-        const { url } = req.body;
+        const { url } = req.body as { url?: string };
 
-        if (!url) {
-            return res.status(400).json({ error: 'URL is required' });
+        if (!url || !/^https?:\/\//i.test(url)) {
+            return res.status(400).json({ error: 'A valid http/https URL is required.' });
         }
 
         let browser;
         try {
-            console.log(`Launching browser to scrape: ${url}`);
             browser = await puppeteer.launch({
                 headless: true,
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process', // <- this one doesn't works in Windows
-                    '--disable-gpu'
-                ]
+                    '--disable-gpu',
+                ],
             });
 
             const page = await browser.newPage();
-            
-            // Set a reasonable viewport with high DPI for better screenshot quality
-            await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
 
-            // Navigate to the URL
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+            // Block heavy non-essential resources to speed up load
+            await page.setRequestInterception(true);
+            page.on('request', (req) => {
+                const type = req.resourceType();
+                if (['media', 'font'].includes(type)) {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
 
-            // Scroll to bottom to trigger lazy loading
+            await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+            await page.setUserAgent(
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+                'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            );
+
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30_000 });
+
+            // ── FIX: stable-height scroll ─────────────────────────────────────────
+            // Scroll until the page height hasn't grown for 3 consecutive 300ms ticks.
+            // This guarantees lazy-loaded footer content is fully in the DOM before
+            // we serialise the HTML.
             await page.evaluate(async () => {
                 await new Promise<void>((resolve) => {
-                    let totalHeight = 0;
-                    const distance = 100;
-                    const timer = setInterval(() => {
-                        const scrollHeight = document.body.scrollHeight;
-                        window.scrollBy(0, distance);
-                        totalHeight += distance;
+                    const SCROLL_STEP   = 600;   // px per tick
+                    const TICK_MS       = 300;   // ms between ticks
+                    const STABLE_NEEDED = 3;     // consecutive stable ticks before stopping
 
-                        if (totalHeight >= scrollHeight) {
-                            clearInterval(timer);
-                            resolve();
+                    let lastHeight   = 0;
+                    let stableCount  = 0;
+
+                    const tick = () => {
+                        const currentHeight = document.body.scrollHeight;
+
+                        if (currentHeight === lastHeight) {
+                            stableCount++;
+                            if (stableCount >= STABLE_NEEDED) {
+                                resolve();
+                                return;
+                            }
+                        } else {
+                            stableCount = 0;
+                            lastHeight  = currentHeight;
                         }
-                    }, 100);
+
+                        window.scrollBy(0, SCROLL_STEP);
+                        setTimeout(tick, TICK_MS);
+                    };
+
+                    setTimeout(tick, TICK_MS);
                 });
             });
 
-            // Wait a bit for any lazy-loaded content to settle
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // ── FIX: wait for footer to appear ───────────────────────────────────
+            try {
+                await page.waitForSelector('footer, [role="contentinfo"], .footer, #footer', {
+                    timeout: 5_000,
+                });
+            } catch {
+                // Footer not found within timeout — proceed anyway
+            }
 
-            // Extract data
+            // Small buffer for any post-scroll paint
+            await new Promise((r) => setTimeout(r, 500));
+
+            // ── FIX: serialise HTML AFTER full scroll so all sections are in DOM ──
+            const html = await page.content();
             const title = await page.title();
-            
-            // Get computed styles for body and root
-            const styles = await page.evaluate(() => {
-                const bodyStyles = window.getComputedStyle(document.body);
-                const rootStyles = window.getComputedStyle(document.documentElement);
-                
-                const keys = ['font-family', 'background-color', 'color', 'font-size', 'line-height', 'letter-spacing', 'font-weight'];
-                
-                const bodyResult: Record<string, string> = {};
-                for (let i = 0; i < keys.length; i++) {
-                    bodyResult[keys[i]] = bodyStyles.getPropertyValue(keys[i]);
-                }
-                
-                const rootResult: Record<string, string> = {};
-                for (let i = 0; i < keys.length; i++) {
-                    rootResult[keys[i]] = rootStyles.getPropertyValue(keys[i]);
-                }
 
-                return {
-                    body: bodyResult,
-                    root: rootResult
-                };
+            // ── FIX: extract CSS custom properties from :root for colour fidelity ─
+            const cssVariables: Record<string, string> = await page.evaluate(() => {
+                const styles = getComputedStyle(document.documentElement);
+                const vars: Record<string, string> = {};
+                // iterate all declared custom properties
+                for (const sheet of Array.from(document.styleSheets)) {
+                    try {
+                        for (const rule of Array.from(sheet.cssRules ?? [])) {
+                            if (rule instanceof CSSStyleRule && rule.selectorText === ':root') {
+                                const ruleStyle = (rule as CSSStyleRule).style;
+                                for (let i = 0; i < ruleStyle.length; i++) {
+                                    const prop = ruleStyle[i];
+                                    if (prop.startsWith('--')) {
+                                        vars[prop] = styles.getPropertyValue(prop).trim();
+                                    }
+                                }
+                            }
+                        }
+                    } catch {
+                        // Cross-origin stylesheets — skip
+                    }
+                }
+                return vars;
             });
 
-            // Get HTML content (simplified if possible, but raw is fine for Gemini)
-            const html = await page.content();
+            // ── FIX: scroll back to top so screenshot shows the hero/nav ─────────
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await new Promise((r) => setTimeout(r, 300));
 
-            // Take screenshot (full page for complete context)
-            const screenshotBuffer = await page.screenshot({ encoding: 'base64', fullPage: true });
-            const screenshot = `data:image/png;base64,${screenshotBuffer}`;
+            const screenshotBuffer = await page.screenshot({
+                encoding: 'base64',
+                fullPage: false, // viewport-only (hero) — full-page at 2x crashes memory
+            });
 
-            res.json({
+            // Also grab a full-page screenshot at lower quality for footer reference
+            const fullPageBuffer = await page.screenshot({
+                encoding: 'base64',
+                fullPage: true,
+                // clip to max 15000px tall to avoid OOM on very long pages
+            });
+
+            await browser.close();
+            browser = undefined;
+
+            return res.json({
                 title,
                 html,
-                styles,
-                screenshot
+                // FIX: return raw base64 WITHOUT the data-URI prefix.
+                // geminiService.ts expects raw base64 for inlineData.data.
+                screenshot: screenshotBuffer as string,
+                fullPageScreenshot: fullPageBuffer as string,
+                cssVariables: Object.keys(cssVariables).length > 0 ? cssVariables : undefined,
             });
 
-        } catch (error: any) {
-            console.error('Scraping error:', error);
-            res.status(500).json({ error: `Failed to scrape URL: ${error.message}` });
-        } finally {
+        } catch (err: any) {
+            console.error('[/api/scrape] Error:', err?.message ?? err);
             if (browser) {
-                await browser.close();
+                await browser.close().catch(() => {});
             }
+            return res.status(500).json({
+                error: err?.message ?? 'Scraping failed',
+                html:  undefined,
+                screenshot: undefined,
+            });
         }
+    });
+
+    app.post('/api/design-system', async (req, res) => {
+        const { query } = req.body;
+
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        const { exec } = await import('child_process');
+        const path = await import('path');
+
+        const scriptPath = path.join(process.cwd(), 'backend', 'core.py');
+        const command = `python3 "${scriptPath}" "${query.replace(/"/g, '\\"')}"`;
+
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing python script: ${error.message}`);
+                return res.status(500).json({ error: `Failed to generate design system: ${stderr || error.message}` });
+            }
+
+            try {
+                const result = JSON.parse(stdout);
+                res.json(result);
+            } catch (parseError) {
+                console.error(`Error parsing python output: ${stdout}`);
+                res.status(500).json({ error: 'Failed to parse design system output' });
+            }
+        });
     });
 
     // Vite middleware for development
