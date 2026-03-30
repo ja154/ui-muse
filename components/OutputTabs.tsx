@@ -101,30 +101,40 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         }
     };
 
+    const isFullHtmlDocument = (html: string): boolean => {
+        const trimmed = html.trimStart().toLowerCase();
+        return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html');
+    };
+
     const handleOpenInNewTab = () => {
         if (!htmlOutput) return;
-        const fullHtml = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; margin: 0; }
-                    ${cssOutput || ''}
-                </style>
-                <title>JengaUI Clone Preview</title>
-            </head>
-            <body>
-                ${htmlOutput}
-            </body>
-            </html>
-        `;
+        let fullHtml: string;
+        if (isFullHtmlDocument(htmlOutput)) {
+            fullHtml = cssOutput && cssOutput.trim()
+                ? htmlOutput.replace('</head>', `<style>${cssOutput}</style>\n</head>`)
+                : htmlOutput;
+        } else {
+            fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body { margin: 0; padding: 0; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        ${cssOutput || ''}
+    </style>
+    <title>JengaUI Preview</title>
+</head>
+<body>
+    ${htmlOutput}
+</body>
+</html>`;
+        }
         const blob = new Blob([fullHtml], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
-        // Clean up URL object after opening
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     
@@ -205,7 +215,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                              )}
                         </div>
                     </div>
-                    <div className="p-6 min-h-[500px] w-full flex flex-col items-center justify-center animate-fade-in">
+                    <div className="p-6 min-h-[900px] w-full flex flex-col items-start justify-start animate-fade-in">
                         {activeTab === 'preview' && PreviewComponent}
                         {activeTab === 'blueprint' && (
                             <div className="w-full h-full min-h-[600px]">

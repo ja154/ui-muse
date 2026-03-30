@@ -425,6 +425,8 @@ MANDATORY RULES:
 9. The footer must contain: logo/brand, navigation columns, social links, and
    a copyright line with the current year.
 10. NEVER stop generating before the closing </html> tag.
+11. CRITICAL — SCROLLABILITY: NEVER set overflow:hidden on <html> or <body>. The page MUST be fully scrollable. Set: html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; } — never overflow:hidden on the y-axis.
+12. CRITICAL — FULL PAGE HEIGHT: Every section of the page (hero, features, pricing, about, footer, etc.) must be rendered at full height. Do NOT clip, truncate, or use fixed viewport heights (height:100vh with overflow:hidden) that would hide content below the fold.
 
 ${UI_UX_PRO_MAX_RULES}`;
 

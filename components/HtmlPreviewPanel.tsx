@@ -11,6 +11,43 @@ interface HtmlPreviewPanelProps {
     viewport: Viewport;
 }
 
+const isFullHtmlDocument = (html: string): boolean => {
+    const trimmed = html.trimStart().toLowerCase();
+    return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html');
+};
+
+const wrapFragment = (bodyContent: string, cssContent?: string): string => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body { margin: 0; padding: 0; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; background: white; }
+        ${cssContent || ''}
+    </style>
+    <title>Preview</title>
+</head>
+<body>
+    <div class="w-full min-h-screen bg-white">
+        ${bodyContent}
+    </div>
+</body>
+</html>`;
+};
+
+const getSrcDoc = (html: string, css?: string): string => {
+    if (isFullHtmlDocument(html)) {
+        if (css && css.trim()) {
+            return html.replace('</head>', `<style>${css}</style>\n</head>`);
+        }
+        return html;
+    }
+    return wrapFragment(html, css);
+};
+
 const DeviceFrame: React.FC<{ children: React.ReactNode, device: 'mobile' | 'tablet' }> = ({ children, device }) => {
     const frameClasses = {
         mobile: 'w-[395px] h-[797px] p-4 bg-black border-4 border-brand-border/80 rounded-[40px] shadow-2xl transition-all duration-300',
@@ -29,43 +66,20 @@ const DeviceFrame: React.FC<{ children: React.ReactNode, device: 'mobile' | 'tab
 
 
 const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoading, error, viewport }) => {
-    
-    const getFullHtml = (bodyContent: string, cssContent?: string) => {
-        return `
-            <!DOCTYPE html>
-            <html lang="en" class="h-full">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-                    ${cssContent || ''}
-                </style>
-                <title>Preview</title>
-            </head>
-            <body class="bg-white">
-                <div class="w-full min-h-screen bg-white">
-                  ${bodyContent}
-                </div>
-            </body>
-            </html>
-        `;
-    };
 
     const content = () => {
         if (isLoading) {
             return (
-                <div className="w-full h-full bg-brand-surface border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center animate-pulse-fast">
+                <div className="w-full h-full min-h-[800px] bg-brand-surface border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center animate-pulse-fast">
                     <GlobeAltIcon className="w-16 h-16 mb-4 text-brand-border" />
                     <div className="h-4 bg-slate-800 rounded w-1/3"></div>
                 </div>
             );
         }
-        
+
         if (error) {
             return (
-                <div className="w-full h-full bg-red-900/20 border-2 border-dashed border-red-500/50 rounded-lg flex flex-col items-center justify-center text-red-400 p-4">
+                <div className="w-full h-full min-h-[800px] bg-red-900/20 border-2 border-dashed border-red-500/50 rounded-lg flex flex-col items-center justify-center text-red-400 p-4">
                     <h3 className="text-lg font-semibold">HTML Error</h3>
                     <p className="text-sm text-center">{error}</p>
                 </div>
@@ -74,30 +88,30 @@ const HtmlPreviewPanel: React.FC<HtmlPreviewPanelProps> = ({ html, css, isLoadin
 
         if (html) {
             return (
-                <iframe 
-                    srcDoc={getFullHtml(html, css)} 
-                    title="HTML Preview" 
+                <iframe
+                    srcDoc={getSrcDoc(html, css)}
+                    title="HTML Preview"
                     sandbox="allow-scripts allow-same-origin"
-                    className="w-full h-full border-0 bg-white"
+                    style={{ width: '100%', minHeight: '900px', border: 'none', display: 'block', background: 'white' }}
                 />
             );
         }
 
         return (
-            <div className="w-full h-full bg-brand-bg/60 border border-dashed border-brand-border/50 rounded-lg flex flex-col items-center justify-center text-brand-muted">
+            <div className="w-full min-h-[800px] bg-brand-bg/60 border border-dashed border-brand-border/50 rounded-lg flex flex-col items-center justify-center text-brand-muted">
                 <GlobeAltIcon className="w-16 h-16 mb-4 opacity-50" />
                 <h3 className="text-lg font-semibold text-slate-300">HTML Preview</h3>
                 <p className="text-sm opacity-70">Your modified UI will be rendered here</p>
             </div>
         );
-    }
-    
+    };
+
     if (viewport === 'mobile' || viewport === 'tablet') {
-         return <div className="transform scale-[0.6] sm:scale-75 origin-top"><DeviceFrame device={viewport}>{content()}</DeviceFrame></div>
+        return <div className="transform scale-[0.6] sm:scale-75 origin-top"><DeviceFrame device={viewport}>{content()}</DeviceFrame></div>;
     }
-    
+
     return (
-        <div className="w-full h-full rounded-lg overflow-auto shadow-lg bg-white">
+        <div className="w-full rounded-lg overflow-auto shadow-lg bg-white">
             {content()}
         </div>
     );
