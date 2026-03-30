@@ -384,7 +384,7 @@ export const generateDesignSystem = async (query: string): Promise<any> => {
 
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     // ── 1. Scrape the target URL ──────────────────────────────────────────────
-    let scrapedData: { html?: string; screenshot?: string; title?: string; cssVariables?: any } = {};
+    let scrapedData: { html?: string; screenshot?: string; fullPageScreenshot?: string; title?: string; cssVariables?: any } = {};
 
     if (url) {
         try {
@@ -431,9 +431,14 @@ MANDATORY RULES:
 ${UI_UX_PRO_MAX_RULES}`;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
+    const hasFullPage = !!scrapedData.fullPageScreenshot;
     let userPrompt = url
-        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page.`
-        : `Reconstruct the website shown in the provided screenshots as a complete HTML page.`;
+        ? `Reconstruct the website at ${url} as a complete, pixel-perfect, fully-scrollable HTML page.`
+        : `Reconstruct the website shown in the provided screenshots as a complete, fully-scrollable HTML page.`;
+    
+    if (hasFullPage) {
+        userPrompt += `\nYou have been provided TWO screenshots: a viewport screenshot showing the hero/nav area, and a FULL-PAGE screenshot showing every section from top to bottom. Use the full-page screenshot as your primary guide to reconstruct ALL sections in the correct order.`;
+    }
 
     if (scrapedData.title) {
         userPrompt += `\nPage title: "${scrapedData.title}"`;
@@ -458,18 +463,32 @@ ${UI_UX_PRO_MAX_RULES}`;
     // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
 
-    // FIX: strip data-URI prefix — inlineData.data must be raw base64
-    const allScreenshots = [
-        ...(scrapedData.screenshot ? [scrapedData.screenshot] : []),
-        ...screenshots,
-    ];
-
-    for (const shot of allScreenshots) {
-        const rawB64 = stripDataUriPrefix(shot);
+    // Viewport (hero/nav) screenshot — labelled so Gemini knows what it is
+    if (scrapedData.screenshot) {
+        const rawB64 = stripDataUriPrefix(scrapedData.screenshot);
         if (rawB64) {
+            parts.push({ text: 'SCREENSHOT 1 — Viewport (top of page, hero & navigation):' });
             parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
         }
     }
+
+    // Full-page screenshot — the most valuable reference for complete section coverage
+    if (scrapedData.fullPageScreenshot) {
+        const rawB64 = stripDataUriPrefix(scrapedData.fullPageScreenshot);
+        if (rawB64) {
+            parts.push({ text: 'SCREENSHOT 2 — Full page (all sections top to bottom including footer). Use this to reconstruct every section visible on the page:' });
+            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+        }
+    }
+
+    // User-uploaded screenshots (additional visual evidence)
+    screenshots.forEach((shot, i) => {
+        const rawB64 = stripDataUriPrefix(shot);
+        if (rawB64) {
+            parts.push({ text: `USER SCREENSHOT ${i + 1}:` });
+            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+        }
+    });
 
     // ── 4. First-pass generation ──────────────────────────────────────────────
     try {
