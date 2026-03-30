@@ -5,7 +5,7 @@ import cors from 'cors';
 
 async function startServer() {
     const app = express();
-    const PORT = 3000;
+    const PORT = 5000;
 
     app.use(cors());
     app.use(express.json());
