@@ -42,14 +42,14 @@ interface OutputTabsProps {
 const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources }) => {
     if (!sources || sources.length === 0) return null;
     return (
-        <div className="mt-4 p-4 bg-brand-bg/50 border border-brand-border/50 rounded-lg w-full">
-            <h4 className="text-xs font-bold text-brand-primary mb-2 flex items-center gap-1">
-                <LinkIcon className="w-3 h-3" /> SOURCES ANALYZED
+        <div className="mt-4 p-4 bg-white/[0.03] border border-white/[0.06] rounded-xl w-full">
+            <h4 className="text-[10px] font-bold text-brand-primary mb-2 flex items-center gap-1.5 uppercase tracking-widest">
+                <LinkIcon className="w-3 h-3" /> Sources analyzed
             </h4>
             <ul className="space-y-1">
                 {sources.map((s, i) => s.web && (
                     <li key={i}>
-                        <a href={s.web.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand-muted hover:text-white transition-colors truncate block">
+                        <a href={s.web.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-white/30 hover:text-white/70 transition-colors truncate block">
                             {s.web.title || s.web.uri}
                         </a>
                     </li>
@@ -173,16 +173,18 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
 
     return (
         <>
-            <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group">
+            <div className="glass rounded-2xl">
                 <div className="relative">
-                    <div className="flex justify-between items-center p-4 border-b border-brand-border/50">
+                    <div className="flex justify-between items-center px-4 py-3 border-b border-white/[0.06]">
                         <div className="flex items-center gap-1">
                             {tabsConfig.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`px-4 py-3 min-h-[44px] text-sm font-bold rounded-lg transition-colors duration-200 ${
-                                        activeTab === tab.id ? 'text-slate-900 bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-white/10 hover:text-slate-200'
+                                    className={`px-3 py-2 min-h-[36px] text-xs font-semibold rounded-lg transition-all duration-200 ${
+                                        activeTab === tab.id
+                                            ? 'text-white bg-white/[0.1] border border-white/[0.12]'
+                                            : 'text-white/30 hover:bg-white/[0.05] hover:text-white/60'
                                     }`}
                                 >
                                     {tab.label}
@@ -193,23 +195,21 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                         <div className="flex items-center gap-2">
                              {activeTab === 'preview' && !isLoading && htmlOutput && (
                                 <>
-                                    <div className="bg-brand-bg/60 rounded-lg flex p-1 mr-2 border border-brand-border/50">
-                                        <button onClick={() => setViewport('mobile')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'mobile' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Mobile View"><DevicePhoneMobileIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setViewport('tablet')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'tablet' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Tablet View"><DeviceTabletIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setViewport('desktop')} className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-colors ${viewport === 'desktop' ? 'text-brand-primary bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`} title="Desktop View"><ComputerDesktopIcon className="w-5 h-5"/></button>
+                                    <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.07] rounded-lg p-1 mr-1">
+                                        <button onClick={() => setViewport('mobile')} title="Mobile View" className={`p-1.5 rounded-md transition-colors ${viewport === 'mobile' ? 'text-white bg-white/[0.1]' : 'text-white/25 hover:text-white/60'}`}><DevicePhoneMobileIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => setViewport('tablet')} title="Tablet View" className={`p-1.5 rounded-md transition-colors ${viewport === 'tablet' ? 'text-white bg-white/[0.1]' : 'text-white/25 hover:text-white/60'}`}><DeviceTabletIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => setViewport('desktop')} title="Desktop View" className={`p-1.5 rounded-md transition-colors ${viewport === 'desktop' ? 'text-white bg-white/[0.1]' : 'text-white/25 hover:text-white/60'}`}><ComputerDesktopIcon className="w-4 h-4"/></button>
                                     </div>
-                                    <button 
-                                        onClick={handleOpenInNewTab} 
-                                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-brand-muted hover:text-brand-primary transition-colors duration-200 bg-white/5 rounded-lg border border-brand-border/50 hover:bg-white/10"
-                                        title="Open in New Tab"
-                                    >
-                                        <ArrowTopRightOnSquareIcon className="w-5 h-5" />
+                                    <button onClick={handleOpenInNewTab} title="Open in New Tab"
+                                        className="p-1.5 text-white/25 hover:text-brand-primary transition-colors bg-white/[0.04] border border-white/[0.07] rounded-lg hover:bg-white/[0.08]">
+                                        <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                                     </button>
                                 </>
                              )}
                              {(activeTab === 'code' || activeTab === 'css') && (
-                                <button onClick={() => handleCopy(activeTab)} className="text-sm font-medium text-brand-muted hover:text-white flex items-center gap-2 px-4 py-2 min-h-[44px] bg-white/5 rounded-lg border border-brand-border/50 hover:bg-white/10 transition-colors">
-                                    {copiedStates[activeTab] ? <CheckIcon className="w-4 h-4 text-green-400"/> : <CopyIcon className="w-4 h-4"/>}
+                                <button onClick={() => handleCopy(activeTab)}
+                                    className="text-xs font-semibold text-white/30 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.04] rounded-lg border border-white/[0.07] hover:bg-white/[0.08] transition-colors">
+                                    {copiedStates[activeTab] ? <CheckIcon className="w-3.5 h-3.5 text-emerald-400"/> : <CopyIcon className="w-3.5 h-3.5"/>}
                                     {copiedStates[activeTab] ? 'Copied' : 'Copy'}
                                 </button>
                              )}

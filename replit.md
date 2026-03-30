@@ -3,6 +3,16 @@
 ## Overview
 An AI-powered UI builder that scrapes websites, analyzes their design, and generates new UI designs using Google's Gemini AI. Users can provide a URL or describe a design, and the app generates a full-page React/Tailwind UI.
 
+## Visual Design System
+- **Theme**: Dark glassmorphism — `#04020f` bg, `rgba(255,255,255,0.04)` glass surfaces
+- **Accents**: Cyan `#06b6d4` (primary) + Violet `#7c3aed` (secondary), gradient CTA button (cyan→violet)
+- **Ambient orbs**: Three fixed-position radial gradients (violet/cyan/indigo) give depth to the glass blur
+- **Grid**: Fine 44px grid overlay with bottom mask
+- **Glass class**: `glass` CSS utility — `backdrop-blur(20px)`, border + inset highlight, deep shadow
+- **CTA button**: `.btn-cta` CSS class — gradient background with hover shimmer/glow + lift effect
+- **Typography**: Inter (sans) + JetBrains Mono (code/labels), with `uppercase tracking-widest` section labels
+- **Colors**: Tailwind CDN config extends with `brand-bg`, `brand-surface`, `brand-primary`, `brand-violet`, `brand-border`
+
 ## Architecture
 - **Full-stack TypeScript**: Single `server.ts` runs both the Express API and Vite dev server on port 5000
 - **Frontend**: React 19 + Vite 6, using Konva for canvas rendering
