@@ -55,8 +55,8 @@ async function startServer() {
             // Scroll until the page height hasn't grown for 3 consecutive 300ms ticks.
             // This guarantees lazy-loaded footer content is fully in the DOM before
             // we serialise the HTML.
-            await page.evaluate(async () => {
-                await new Promise<void>((resolve) => {
+            await page.evaluate(`(async () => {
+                await new Promise((resolve) => {
                     const SCROLL_STEP   = 600;   // px per tick
                     const TICK_MS       = 300;   // ms between ticks
                     const STABLE_NEEDED = 3;     // consecutive stable ticks before stopping
@@ -84,7 +84,7 @@ async function startServer() {
 
                     setTimeout(tick, TICK_MS);
                 });
-            });
+            })()`);
 
             // ── FIX: wait for footer to appear ───────────────────────────────────
             try {
@@ -103,15 +103,15 @@ async function startServer() {
             const title = await page.title();
 
             // ── FIX: extract CSS custom properties from :root for colour fidelity ─
-            const cssVariables: Record<string, string> = await page.evaluate(() => {
+            const cssVariables: Record<string, string> = await page.evaluate(`(() => {
                 const styles = getComputedStyle(document.documentElement);
-                const vars: Record<string, string> = {};
+                const vars = {};
                 // iterate all declared custom properties
                 for (const sheet of Array.from(document.styleSheets)) {
                     try {
                         for (const rule of Array.from(sheet.cssRules ?? [])) {
                             if (rule instanceof CSSStyleRule && rule.selectorText === ':root') {
-                                const ruleStyle = (rule as CSSStyleRule).style;
+                                const ruleStyle = rule.style;
                                 for (let i = 0; i < ruleStyle.length; i++) {
                                     const prop = ruleStyle[i];
                                     if (prop.startsWith('--')) {
@@ -120,15 +120,15 @@ async function startServer() {
                                 }
                             }
                         }
-                    } catch {
+                    } catch (e) {
                         // Cross-origin stylesheets — skip
                     }
                 }
                 return vars;
-            });
+            })()`) as any;
 
             // ── FIX: scroll back to top so screenshot shows the hero/nav ─────────
-            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.evaluate(`window.scrollTo(0, 0)`);
             await new Promise((r) => setTimeout(r, 300));
 
             const screenshotBuffer = await page.screenshot({
