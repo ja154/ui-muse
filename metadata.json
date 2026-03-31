@@ -1,5 +1,5 @@
 {
-  "name": "JengaUI: AI-Powered UI Builder & Design System Generator",
+  "name": "UI Muse: AI-Powered UI Builder & Design System Generator",
   "description": "An intelligent tool that helps you build and remix UI components. Generate design systems from brand descriptions, create UI blueprints, image previews, and functional HTML with Tailwind CSS, or clone and remix existing websites.",
   "requestFramePermissions": [],
   "prompt": ""

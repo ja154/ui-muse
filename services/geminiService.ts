@@ -34,6 +34,16 @@ function safeHtmlTruncate(html: string, maxChars: number): string {
 }
 
 /**
+ * Strip common "non-scrollable" classes that Gemini often adds despite instructions.
+ */
+function cleanHtml(html: string): string {
+    return html
+        .replace(/\bh-screen\b/g, 'min-h-screen')
+        .replace(/\boverflow-hidden\b/g, 'overflow-visible')
+        .replace(/\boverflow-y-hidden\b/g, 'overflow-y-visible');
+}
+
+/**
  * Extract JSON from model output robustly:
  *   1. Try direct parse
  *   2. Strip markdown fences (```json ... ```) then parse
@@ -198,6 +208,7 @@ CRITICAL UI/UX PRO MAX RULES:
 4. Contrast & Theming: Maintain >=4.5:1 text contrast. Ensure borders and dividers are visible in both light and dark modes. Use semantic color tokens.
 5. Spacing & Layout: Use a strict 4px/8px spacing rhythm (e.g., p-2, p-4, gap-4). Keep predictable content widths and readable text measures (max-w-prose for long text).
 6. Accessibility: Ensure proper focus states, semantic HTML tags, and aria-labels for icon-only buttons.
+7. SCROLLABILITY: NEVER use 'h-screen' or 'overflow-hidden' on the main body or root container. The page MUST be vertically scrollable. Ensure all sections are stacked vertically and the footer is at the very bottom of the document flow.
 `;
 
 export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
@@ -227,7 +238,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
         
         const jsonResponse = JSON.parse(response.text || '{}');
         return {
-            html: jsonResponse.html || '',
+            html: cleanHtml(jsonResponse.html || ''),
             css: jsonResponse.css || ''
         };
     } catch (error) {
@@ -266,7 +277,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
         });
         const jsonResponse = JSON.parse(response.text || '{}');
         return {
-            html: jsonResponse.html || '',
+            html: cleanHtml(jsonResponse.html || ''),
             css: jsonResponse.css || ''
         };
     } catch (error) {
@@ -302,7 +313,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
         
         const jsonResponse = JSON.parse(response.text || '{}');
         return {
-            html: jsonResponse.html || '',
+            html: cleanHtml(jsonResponse.html || ''),
             css: jsonResponse.css || ''
         };
     } catch (error) {
@@ -355,7 +366,7 @@ ${UI_UX_PRO_MAX_RULES}`;
         });
 
         const jsonResponse = JSON.parse(response.text || '{}');
-        return { html: jsonResponse.html || '', css: jsonResponse.css || '' };
+        return { html: cleanHtml(jsonResponse.html || ''), css: jsonResponse.css || '' };
     } catch (error) {
         console.error("Error generating from wireframe:", error);
         throw error;
@@ -425,20 +436,19 @@ MANDATORY RULES:
 9. The footer must contain: logo/brand, navigation columns, social links, and
    a copyright line with the current year.
 10. NEVER stop generating before the closing </html> tag.
-11. CRITICAL — SCROLLABILITY: NEVER set overflow:hidden on <html> or <body>. The page MUST be fully scrollable. Set: html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; } — never overflow:hidden on the y-axis.
-12. CRITICAL — FULL PAGE HEIGHT: Every section of the page (hero, features, pricing, about, footer, etc.) must be rendered at full height. Do NOT clip, truncate, or use fixed viewport heights (height:100vh with overflow:hidden) that would hide content below the fold.
+11. SCROLLABILITY: The resulting page MUST be vertically scrollable. DO NOT use 
+    'h-screen', 'fixed', or 'overflow-hidden' on the body or main wrapper. 
+    Ensure the page height is determined by its content.
+12. VISUAL FIDELITY: Prioritize the visual appearance shown in the SCREENSHOTS. 
+    The scraped HTML is for content and structure reference, but the screenshots 
+    are the source of truth for layout, colors, and spacing.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
-    const hasFullPage = !!scrapedData.fullPageScreenshot;
     let userPrompt = url
-        ? `Reconstruct the website at ${url} as a complete, pixel-perfect, fully-scrollable HTML page.`
-        : `Reconstruct the website shown in the provided screenshots as a complete, fully-scrollable HTML page.`;
-    
-    if (hasFullPage) {
-        userPrompt += `\nYou have been provided TWO screenshots: a viewport screenshot showing the hero/nav area, and a FULL-PAGE screenshot showing every section from top to bottom. Use the full-page screenshot as your primary guide to reconstruct ALL sections in the correct order.`;
-    }
+        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. Use the provided screenshots as the primary visual reference for layout, colors, and styling. Ensure the entire page is captured, including the footer.`
+        : `Reconstruct the website shown in the provided screenshots as a complete HTML page. Use the screenshots as the primary visual reference for layout, colors, and styling. Ensure the entire page is captured, including the footer.`;
 
     if (scrapedData.title) {
         userPrompt += `\nPage title: "${scrapedData.title}"`;
@@ -463,32 +473,19 @@ ${UI_UX_PRO_MAX_RULES}`;
     // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
 
-    // Viewport (hero/nav) screenshot — labelled so Gemini knows what it is
-    if (scrapedData.screenshot) {
-        const rawB64 = stripDataUriPrefix(scrapedData.screenshot);
-        if (rawB64) {
-            parts.push({ text: 'SCREENSHOT 1 — Viewport (top of page, hero & navigation):' });
-            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
-        }
-    }
+    // FIX: strip data-URI prefix — inlineData.data must be raw base64
+    const allScreenshots = [
+        ...(scrapedData.screenshot ? [scrapedData.screenshot] : []),
+        ...(scrapedData.fullPageScreenshot ? [scrapedData.fullPageScreenshot] : []),
+        ...screenshots,
+    ];
 
-    // Full-page screenshot — the most valuable reference for complete section coverage
-    if (scrapedData.fullPageScreenshot) {
-        const rawB64 = stripDataUriPrefix(scrapedData.fullPageScreenshot);
-        if (rawB64) {
-            parts.push({ text: 'SCREENSHOT 2 — Full page (all sections top to bottom including footer). Use this to reconstruct every section visible on the page:' });
-            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
-        }
-    }
-
-    // User-uploaded screenshots (additional visual evidence)
-    screenshots.forEach((shot, i) => {
+    for (const shot of allScreenshots) {
         const rawB64 = stripDataUriPrefix(shot);
         if (rawB64) {
-            parts.push({ text: `USER SCREENSHOT ${i + 1}:` });
             parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
         }
-    });
+    }
 
     // ── 4. First-pass generation ──────────────────────────────────────────────
     try {
@@ -548,6 +545,10 @@ ${UI_UX_PRO_MAX_RULES}`;
                 parsed.html = parsed.html.trimEnd()
                     + '\n<!-- generation was truncated -->\n</section></main></body></html>';
             }
+        }
+
+        if (isHtmlComplete(parsed.html)) {
+            parsed.html = cleanHtml(parsed.html);
         }
 
         const sources = firstResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];

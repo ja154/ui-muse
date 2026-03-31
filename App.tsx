@@ -30,7 +30,7 @@ const VISUAL_STYLES: VisualStyle[] = [
 ];
 
 const TEMPLATES: Template[] = [
-    { id: 'jengaui-wireframe', name: 'JengaUI Wireframe', prompt: 'A UI builder dashboard with a left panel for inputs (tabs for Describe, Blueprint, Remix, Clone), a right panel for outputs (tabs for Preview, Code, Prompt), and a bottom section for inspiration and history.', style: VisualStyle.Minimalist },
+    { id: 'ui-muse-wireframe', name: 'UI Muse Wireframe', prompt: 'A UI builder dashboard with a left panel for inputs (tabs for Describe, Blueprint, Remix, Clone), a right panel for outputs (tabs for Preview, Code, Prompt), and a bottom section for inspiration and history.', style: VisualStyle.Minimalist },
     { id: 'login-form', name: 'Minimalist Login Form', prompt: 'A clean, simple login form with email, password fields, and a submit button.', style: VisualStyle.Minimalist },
     { id: 'product-card', name: 'Cyberpunk Product Card', prompt: 'A futuristic product card with a holographic image placeholder, glowing text, and sharp angles.', style: VisualStyle.Cyberpunk },
     { id: 'pricing-table', name: 'Corporate Pricing Table', prompt: 'A professional pricing table with three tiers (Basic, Pro, Enterprise), feature lists, and clear call-to-action buttons.', style: VisualStyle.Corporate },
@@ -308,7 +308,7 @@ const App: React.FC = () => {
     };
 
     return (
-        <div>
+        <div className="animate-fade-in">
             <Header />
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
