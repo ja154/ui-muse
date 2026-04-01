@@ -6,6 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const CLONE_MODEL = 'gemini-3.1-pro-preview'; 
+const VISION_MODEL = 'gemini-3.1-pro-preview'; // Explicitly using pro for vision tasks
 const MAX_TOKENS = 32768;                       // was 8192 — critical fix
 const HTML_CONTEXT_CHARS = 40_000;              // scraped HTML context window
 
@@ -209,6 +210,8 @@ CRITICAL UI/UX PRO MAX RULES:
 5. Spacing & Layout: Use a strict 4px/8px spacing rhythm (e.g., p-2, p-4, gap-4). Keep predictable content widths and readable text measures (max-w-prose for long text).
 6. Accessibility: Ensure proper focus states, semantic HTML tags, and aria-labels for icon-only buttons.
 7. SCROLLABILITY: NEVER use 'h-screen' or 'overflow-hidden' on the main body or root container. The page MUST be vertically scrollable. Ensure all sections are stacked vertically and the footer is at the very bottom of the document flow.
+8. VISUAL CONSISTENCY: Maintain a cohesive design language. Ensure that all buttons, inputs, and cards share the same border-radius, shadow styles, and typography patterns.
+9. IMAGE ANALYSIS: When reconstructing from screenshots, prioritize the visual appearance. Extract exact colors, font styles, and spacing from the images.
 `;
 
 export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
@@ -325,11 +328,15 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
 export const generateFromWireframe = async (base64Image: string): Promise<{ html: string; css: string }> => {
     const systemInstruction = `You are an expert UI/UX designer and Frontend Developer. Your mission is to transform a low-fidelity wireframe into a beautiful, high-fidelity, production-ready UI using HTML and Tailwind CSS.
 
+VISUAL REASONING PROTOCOL:
+1. INTERPRET STRUCTURE: Analyze the hand-drawn or digital wireframe to understand the intended layout, hierarchy, and navigation flow.
+2. IDENTIFY COMPONENTS: Recognize UI elements like buttons, inputs, cards, and sections even if they are roughly sketched.
+3. ENHANCE FIDELITY: Replace generic placeholders (like boxes with "IMAGE" or "TEXT") with appropriate, realistic content and high-quality placeholder images (e.g., using picsum.photos).
+4. APPLY MODERN DESIGN: Do not just make a gray box. Apply modern UI/UX principles, beautiful color palettes, typography, shadows, and spacing. Make it look like a premium product.
+
 CRITICAL GUIDELINES:
-1. INTERPRET THE WIREFRAME: Understand the layout, hierarchy, and intent of the wireframe. Replace generic placeholders (like boxes with "IMAGE" or "TEXT") with appropriate, realistic content and high-quality placeholder images (e.g., using picsum.photos).
-2. ELEVATE THE DESIGN: Do not just make a gray box. Apply modern UI/UX principles, beautiful color palettes, typography, shadows, and spacing. Make it look like a premium product.
-3. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
-4. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
+1. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
+2. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
@@ -337,7 +344,7 @@ ${UI_UX_PRO_MAX_RULES}`;
     const data = base64Image.split(',')[1] || base64Image;
 
     const parts: any[] = [
-        { text: "Transform this wireframe into a high-fidelity, beautiful UI using HTML and Tailwind CSS. Add realistic placeholder content, modern styling, and ensure it is fully responsive." },
+        { text: "Carefully analyze this wireframe. Identify the intended layout and components. Then, transform it into a high-fidelity, beautiful UI using HTML and Tailwind CSS. Add realistic placeholder content, modern styling, and ensure it is fully responsive." },
         {
             inlineData: {
                 data: data,
@@ -416,12 +423,19 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
         }
     }
 
-    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor.
+    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor and Visual UI/UX Analyst.
 
 Your task: reproduce the provided website as a single self-contained HTML file
 with an embedded <style> block. The output must cover the COMPLETE PAGE from the
 very first element to the very last — including NAVIGATION, HERO, ALL SECTIONS,
 and the FOOTER with all its columns, links, and copyright line.
+
+VISUAL ANALYSIS PROTOCOL:
+1. ANALYZE COLORS: Extract exact hex codes or closest Tailwind colors from the screenshots. Look at backgrounds, text, buttons, and borders.
+2. ANALYZE TYPOGRAPHY: Identify font weights (light, normal, bold), sizes, and styles (serif, sans-serif, mono) from the images.
+3. ANALYZE SPACING: Observe the padding, margins, and gaps between elements. Use Tailwind's spacing scale (p-4, m-8, gap-4) to match the visual density.
+4. ANALYZE COMPONENTS: Identify specific UI patterns like cards, carousels, tabs, and forms. Reconstruct them with high fidelity.
+5. ANALYZE IMAGERY: Note the content and style of images. Use descriptive placeholder URLs (e.g., picsum.photos/seed/...) that match the visual theme.
 
 MANDATORY RULES:
 1. Output ONLY valid JSON. No markdown fences, no prose, no comments outside JSON.
@@ -442,13 +456,26 @@ MANDATORY RULES:
 12. VISUAL FIDELITY: Prioritize the visual appearance shown in the SCREENSHOTS. 
     The scraped HTML is for content and structure reference, but the screenshots 
     are the source of truth for layout, colors, and spacing.
+13. OCR & CONTENT: Extract all visible text from the screenshots accurately. If the scraped HTML is missing content shown in images, use the image content.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
     let userPrompt = url
-        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. Use the provided screenshots as the primary visual reference for layout, colors, and styling. Ensure the entire page is captured, including the footer.`
-        : `Reconstruct the website shown in the provided screenshots as a complete HTML page. Use the screenshots as the primary visual reference for layout, colors, and styling. Ensure the entire page is captured, including the footer.`;
+        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. 
+           
+           VISUAL REASONING STEP:
+           First, carefully examine the provided screenshots. Identify the primary color palette, the typography used, and the overall layout structure. 
+           Then, use the scraped HTML as a reference for content and semantic structure, but ALWAYS defer to the screenshots for the final visual appearance.
+           
+           Ensure the entire page is captured, including the footer.`
+        : `Reconstruct the website shown in the provided screenshots as a complete, pixel-perfect HTML page. 
+        
+           VISUAL REASONING STEP:
+           Carefully analyze every pixel of the provided images. Identify all UI components, their exact positioning, colors, and font styles. 
+           Extract all text content from the images using OCR. 
+           
+           Reconstruct the UI with high fidelity using Tailwind CSS. Ensure the entire page is captured, including the footer.`;
 
     if (scrapedData.title) {
         userPrompt += `\nPage title: "${scrapedData.title}"`;

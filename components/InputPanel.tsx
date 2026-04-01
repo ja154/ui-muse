@@ -192,8 +192,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-slate-200 flex items-center gap-2">
-                                    Add Visual Evidence
-                                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Experimental</span>
+                                    Visual Evidence & Analysis
+                                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Enhanced</span>
                                 </label>
                                 <input 
                                     type="file" 
@@ -227,7 +227,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     )}
                                 </div>
                                 <p className="text-[10px] text-brand-muted mt-3 italic">
-                                    Gemini analyzes screenshots for spacing, colors, and specific UI elements to ensure a faithful reconstruction.
+                                    Gemini now performs deep visual reasoning on your screenshots to extract exact colors, typography, and layout patterns for a pixel-perfect reconstruction.
                                 </p>
                             </div>
 
