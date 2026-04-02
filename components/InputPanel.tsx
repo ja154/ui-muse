@@ -227,7 +227,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     )}
                                 </div>
                                 <p className="text-[10px] text-brand-muted mt-3 italic">
-                                    Gemini now performs deep visual reasoning on your screenshots to extract exact colors, typography, and layout patterns for a pixel-perfect reconstruction.
+                                    Gemini now performs deep visual reasoning on your screenshots to extract exact colors, typography, and layout patterns. 
+                                    <span className="text-brand-primary font-bold"> Uploaded images are used as the primary source of truth.</span>
                                 </p>
                             </div>
 

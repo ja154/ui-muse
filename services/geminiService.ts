@@ -465,14 +465,18 @@ ${UI_UX_PRO_MAX_RULES}`;
         ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. 
            
            VISUAL REASONING STEP:
-           First, carefully examine the provided screenshots. Identify the primary color palette, the typography used, and the overall layout structure. 
+           First, carefully examine ALL provided screenshots (including the scraped ones and the ones uploaded by the user). 
+           Identify the primary color palette, the typography used, and the overall layout structure from these images. 
+           The user-uploaded screenshots are the HIGHEST priority for visual fidelity.
+           
            Then, use the scraped HTML as a reference for content and semantic structure, but ALWAYS defer to the screenshots for the final visual appearance.
            
            Ensure the entire page is captured, including the footer.`
         : `Reconstruct the website shown in the provided screenshots as a complete, pixel-perfect HTML page. 
         
            VISUAL REASONING STEP:
-           Carefully analyze every pixel of the provided images. Identify all UI components, their exact positioning, colors, and font styles. 
+           Carefully analyze every pixel of ALL provided images. Identify all UI components, their exact positioning, colors, and font styles. 
+           The user has provided these screenshots as the primary source of truth.
            Extract all text content from the images using OCR. 
            
            Reconstruct the UI with high fidelity using Tailwind CSS. Ensure the entire page is captured, including the footer.`;
@@ -500,17 +504,28 @@ ${UI_UX_PRO_MAX_RULES}`;
     // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
 
-    // FIX: strip data-URI prefix — inlineData.data must be raw base64
-    const allScreenshots = [
+    const scrapedShots = [
         ...(scrapedData.screenshot ? [scrapedData.screenshot] : []),
         ...(scrapedData.fullPageScreenshot ? [scrapedData.fullPageScreenshot] : []),
-        ...screenshots,
     ];
 
-    for (const shot of allScreenshots) {
-        const rawB64 = stripDataUriPrefix(shot);
-        if (rawB64) {
-            parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+    if (scrapedShots.length > 0) {
+        parts.push({ text: `--- SCRAPED SCREENSHOTS (Reference Only) ---` });
+        for (const shot of scrapedShots) {
+            const rawB64 = stripDataUriPrefix(shot);
+            if (rawB64) {
+                parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+            }
+        }
+    }
+
+    if (screenshots.length > 0) {
+        parts.push({ text: `--- USER-UPLOADED SCREENSHOTS (Primary Source of Truth) ---` });
+        for (const shot of screenshots) {
+            const rawB64 = stripDataUriPrefix(shot);
+            if (rawB64) {
+                parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+            }
         }
     }
 
