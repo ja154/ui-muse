@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        hmr: false, // Explicitly disable HMR to prevent WebSocket errors in sandboxed environments
       },
       plugins: [react()],
       define: {
