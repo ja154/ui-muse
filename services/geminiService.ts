@@ -212,6 +212,7 @@ CRITICAL UI/UX PRO MAX RULES:
 7. SCROLLABILITY: NEVER use 'h-screen' or 'overflow-hidden' on the main body or root container. The page MUST be vertically scrollable. Ensure all sections are stacked vertically and the footer is at the very bottom of the document flow.
 8. VISUAL CONSISTENCY: Maintain a cohesive design language. Ensure that all buttons, inputs, and cards share the same border-radius, shadow styles, and typography patterns.
 9. IMAGE ANALYSIS: When reconstructing from screenshots, prioritize the visual appearance. Extract exact colors, font styles, and spacing from the images.
+10. COMPONENT MODULARITY: Structure the HTML into logical, self-contained sections (e.g., <header>, <section id="hero">, <section id="features">, <footer>). This makes the code easier to read and maintain.
 `;
 
 export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
@@ -434,8 +435,18 @@ VISUAL ANALYSIS PROTOCOL:
 1. ANALYZE COLORS: Extract exact hex codes or closest Tailwind colors from the screenshots. Look at backgrounds, text, buttons, and borders.
 2. ANALYZE TYPOGRAPHY: Identify font weights (light, normal, bold), sizes, and styles (serif, sans-serif, mono) from the images.
 3. ANALYZE SPACING: Observe the padding, margins, and gaps between elements. Use Tailwind's spacing scale (p-4, m-8, gap-4) to match the visual density.
-4. ANALYZE COMPONENTS: Identify specific UI patterns like cards, carousels, tabs, and forms. Reconstruct them with high fidelity.
-5. ANALYZE IMAGERY: Note the content and style of images. Use descriptive placeholder URLs (e.g., picsum.photos/seed/...) that match the visual theme.
+4. ANALYZE IMAGERY: Note the content and style of images. Use descriptive placeholder URLs (e.g., picsum.photos/seed/...) that match the visual theme.
+
+COMPONENT IDENTIFICATION PROTOCOL:
+1. DECONSTRUCT THE PAGE: Break down the visual evidence into distinct UI components:
+   - NAVIGATION: Identify the logo, menu links, CTA buttons, and mobile menu triggers.
+   - HERO SECTION: Identify the main heading, subtext, primary CTA, and background elements (images/gradients).
+   - FEATURE GRIDS: Recognize repeating patterns of icons, titles, and descriptions.
+   - CONTENT BLOCKS: Identify alternating text/image sections.
+   - TESTIMONIALS/SOCIAL PROOF: Recognize quotes, avatars, and logo clouds.
+   - FORMS/INPUTS: Identify contact forms, newsletter signups, and search bars.
+   - FOOTER: Identify site maps, social links, legal text, and secondary branding.
+2. RECONSTRUCT WITH SEMANTIC PRECISION: Use the identified components to build a structured HTML document that mirrors the visual hierarchy.
 
 MANDATORY RULES:
 1. Output ONLY valid JSON. No markdown fences, no prose, no comments outside JSON.
@@ -465,8 +476,9 @@ ${UI_UX_PRO_MAX_RULES}`;
         ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. 
            
            VISUAL REASONING STEP:
-           First, carefully examine ALL provided screenshots (including the scraped ones and the ones uploaded by the user). 
-           Identify the primary color palette, the typography used, and the overall layout structure from these images. 
+           1. Carefully examine ALL provided screenshots (including the scraped ones and the ones uploaded by the user). 
+           2. DECONSTRUCT the page into its core components (Navigation, Hero, Features, Testimonials, Footer, etc.).
+           3. Identify the primary color palette, the typography used, and the overall layout structure from these images. 
            The user-uploaded screenshots are the HIGHEST priority for visual fidelity.
            
            Then, use the scraped HTML as a reference for content and semantic structure, but ALWAYS defer to the screenshots for the final visual appearance.
@@ -475,9 +487,10 @@ ${UI_UX_PRO_MAX_RULES}`;
         : `Reconstruct the website shown in the provided screenshots as a complete, pixel-perfect HTML page. 
         
            VISUAL REASONING STEP:
-           Carefully analyze every pixel of ALL provided images. Identify all UI components, their exact positioning, colors, and font styles. 
+           1. Carefully analyze every pixel of ALL provided images. 
+           2. IDENTIFY and DECONSTRUCT all UI components (Navigation, Hero, Features, Testimonials, Footer, etc.), their exact positioning, colors, and font styles. 
            The user has provided these screenshots as the primary source of truth.
-           Extract all text content from the images using OCR. 
+           3. Extract all text content from the images using OCR. 
            
            Reconstruct the UI with high fidelity using Tailwind CSS. Ensure the entire page is captured, including the footer.`;
 
