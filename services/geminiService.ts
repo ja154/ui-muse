@@ -208,7 +208,7 @@ CRITICAL UI/UX PRO MAX RULES:
 3. Touch Targets: Ensure all interactive elements have a minimum 44x44px tap area.
 4. Contrast & Theming: Maintain >=4.5:1 text contrast. Ensure borders and dividers are visible in both light and dark modes. Use semantic color tokens.
 5. Spacing & Layout: Use a strict 4px/8px spacing rhythm (e.g., p-2, p-4, gap-4). Keep predictable content widths and readable text measures (max-w-prose for long text).
-6. Accessibility: Ensure proper focus states, semantic HTML tags, and aria-labels for icon-only buttons.
+6. Accessibility: Ensure proper focus states for ALL interactive elements. For input fields (text, textarea, select, etc.), implement a clear focus state using Tailwind CSS (e.g., focus:border-blue-500 focus:ring-1 focus:ring-blue-500 or similar visible indicators). Use semantic HTML tags and aria-labels for icon-only buttons.
 7. SCROLLABILITY: NEVER use 'h-screen' or 'overflow-hidden' on the main body or root container. The page MUST be vertically scrollable. Ensure all sections are stacked vertically and the footer is at the very bottom of the document flow.
 8. VISUAL CONSISTENCY: Maintain a cohesive design language. Ensure that all buttons, inputs, and cards share the same border-radius, shadow styles, and typography patterns.
 9. IMAGE ANALYSIS: When reconstructing from screenshots, prioritize the visual appearance. Extract exact colors, font styles, and spacing from the images.
@@ -457,7 +457,7 @@ MANDATORY RULES:
 5. Use semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
 6. Inline all CSS inside a <style> tag in <head>. The css field may be empty "".
 7. Use CSS custom properties (variables) for all colors and spacing.
-8. All interactive elements must have cursor:pointer and visible focus states.
+8. All interactive elements must have cursor:pointer and visible focus states. For input fields (text, textarea, select, etc.), implement a clear focus state using Tailwind CSS (e.g., focus:border-primary focus:ring-1 focus:ring-primary).
 9. The footer must contain: logo/brand, navigation columns, social links, and
    a copyright line with the current year.
 10. NEVER stop generating before the closing </html> tag.
