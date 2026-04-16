@@ -1,12 +1,16 @@
 
 export enum VisualStyle {
-    Minimalist = 'Minimalist',
-    Neumorphic = 'Neumorphic',
-    Cyberpunk = 'Cyberpunk',
-    Glassmorphism = 'Glassmorphism',
-    Brutalist = 'Brutalist',
+    Minimalist = 'Minimalist / Swiss',
     Corporate = 'Clean & Corporate',
-    Playful = 'Playful & Illustrated',
+    Bento = 'Bento Grid',
+    Editorial = 'Editorial / Magazine',
+    Glassmorphism = 'Glassmorphism',
+    Brutalist = 'Neo-Brutalist',
+    Luxury = 'Luxury / Prestige',
+    Technical = 'Technical Dashboard',
+    Atmospheric = 'Atmospheric / Immersive',
+    Cyberpunk = 'Cyberpunk / High-Tech',
+    Playful = 'Playful & Vibrant',
     Vintage = 'Vintage & Retro'
 }
 

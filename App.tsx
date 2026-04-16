@@ -20,11 +20,15 @@ import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource } from '
 
 const VISUAL_STYLES: VisualStyle[] = [
     VisualStyle.Minimalist,
-    VisualStyle.Neumorphic,
-    VisualStyle.Cyberpunk,
-    VisualStyle.Glassmorphism,
-    VisualStyle.Brutalist,
+    VisualStyle.Bento,
+    VisualStyle.Editorial,
+    VisualStyle.Luxury,
+    VisualStyle.Technical,
+    VisualStyle.Atmospheric,
     VisualStyle.Corporate,
+    VisualStyle.Brutalist,
+    VisualStyle.Glassmorphism,
+    VisualStyle.Cyberpunk,
     VisualStyle.Playful,
     VisualStyle.Vintage,
 ];
@@ -128,7 +132,7 @@ const App: React.FC = () => {
     const handleGenerateTemplate = useCallback(async (templateId: string, prompt: string, style: VisualStyle) => {
         setTemplateLoading(prev => ({ ...prev, [templateId]: true }));
         try {
-            const { html } = await generateHtmlFromPrompt(`${prompt} Style: ${style}`);
+            const { html } = await generateHtmlFromPrompt(prompt, style);
             setGeneratedTemplates(prev => ({ ...prev, [templateId]: html }));
         } catch (err) {
             console.error(err);
@@ -179,7 +183,7 @@ const App: React.FC = () => {
                 
                 const [img, result] = await Promise.all([
                     generateImagePreview(finalPrompt).catch(() => null),
-                    generateHtmlFromPrompt(finalPrompt).catch(() => null)
+                    generateHtmlFromPrompt(finalPrompt, selectedStyle).catch(() => null)
                 ]);
 
                 if (img) setPreviewImage(img);
@@ -259,7 +263,7 @@ const App: React.FC = () => {
                 
                 The user wants: ${userInput}`;
                 
-                const { html, css } = await generateHtmlFromPrompt(systemPrompt);
+                const { html, css } = await generateHtmlFromPrompt(systemPrompt, selectedStyle);
                 setHtmlOutput(html);
                 setCssOutput(css);
                 setGeneratedPrompt(systemPrompt);

@@ -147,7 +147,11 @@ const cleanHtmlResponse = (text: string): string => {
 
 export const enhancePrompt = async (userInput: string, style: VisualStyle): Promise<string> => {
     try {
-        const systemInstruction = "You are an expert UI/UX designer and prompt engineer. Your task is to expand simple UI descriptions into rich, detailed, and structured prompts.";
+        const recipe = STYLE_RECIPES[style] || "";
+        const systemInstruction = `You are an expert UI/UX designer and prompt engineer. 
+        Your task is to expand simple UI descriptions into rich, detailed, and structured prompts.
+        Use the following Design Recipe as your stylistic foundation:
+        ${recipe}`;
         const prompt = `
 The user wants a UI for: "${userInput}"
 The desired visual style is: "${style}"
@@ -203,20 +207,112 @@ export const generateImagePreview = async (prompt: string): Promise<string> => {
 
 const UI_UX_PRO_MAX_RULES = `
 CRITICAL UI/UX PRO MAX RULES:
-1. Icons: NEVER use emojis for structural icons. Use vector icons (e.g., Lucide, Phosphor, Heroicons). Ensure consistent sizing (e.g., 24px) and stroke width.
-2. Interaction: Use color, opacity, or elevation for hover/press states. DO NOT use layout-shifting transforms that move surrounding content.
-3. Touch Targets: Ensure all interactive elements have a minimum 44x44px tap area.
-4. Contrast & Theming: Maintain >=4.5:1 text contrast. Ensure borders and dividers are visible in both light and dark modes. Use semantic color tokens.
-5. Spacing & Layout: Use a strict 4px/8px spacing rhythm (e.g., p-2, p-4, gap-4). Keep predictable content widths and readable text measures (max-w-prose for long text).
-6. Accessibility: Ensure proper focus states for ALL interactive elements. For input fields (text, textarea, select, etc.), implement a clear focus state using Tailwind CSS (e.g., focus:border-blue-500 focus:ring-1 focus:ring-blue-500 or similar visible indicators). Use semantic HTML tags and aria-labels for icon-only buttons.
-7. SCROLLABILITY: NEVER use 'h-screen' or 'overflow-hidden' on the main body or root container. The page MUST be vertically scrollable. Ensure all sections are stacked vertically and the footer is at the very bottom of the document flow.
-8. VISUAL CONSISTENCY: Maintain a cohesive design language. Ensure that all buttons, inputs, and cards share the same border-radius, shadow styles, and typography patterns.
-9. IMAGE ANALYSIS: When reconstructing from screenshots, prioritize the visual appearance. Extract exact colors, font styles, and spacing from the images.
-10. COMPONENT MODULARITY: Structure the HTML into logical, self-contained sections (e.g., <header>, <section id="hero">, <section id="features">, <footer>). This makes the code easier to read and maintain.
+1. DESIGN INTENT: Every visual choice must reinforce a cohesive mood. Avoid "defaults."
+2. TYPOGRAPHIC RHYTHM: Create visual hierarchy through variation in font size, weight, and tracking. Use large display type (24vw+) sparingly for impact.
+3. SPACING RHYTHM: Use a strict 4px/8px spacing scale (p-2, p-4, p-8). Create rhythm through intentional variation—identical spacing everywhere looks robotic.
+4. ICONS: NEVER use emojis for structural icons. Use vector icons (Lucide, Phosphor). Ensure consistent 24px sizing and 1.5px/2px stroke width.
+5. INTERACTION: Use color, opacity, or elevation for states. DO NOT use layout-shifting transforms.
+6. TOUCH TARGETS: Ensure all interactive elements have a minimum 44x44px tap area.
+7. CONTRAST: Maintain >=4.5:1 text contrast. Use semantic color tokens.
+8. ACCESSIBILITY: Ensure proper focus states for ALL interactive elements (e.g., focus:ring-2 focus:ring-primary).
+9. NO GENERIC GRADIENTS: Avoid simple purple/blue gradients. Use layered radial backgrounds or sophisticated grain textures for depth.
+10. SCROLLABILITY: ALWAYS ensure page is vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
 `;
 
-export const generateHtmlFromPrompt = async (prompt: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = "You are an expert front-end developer. Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS. Also provide any necessary custom CSS for animations, keyframes, or specific styles not covered by Tailwind.\n" + UI_UX_PRO_MAX_RULES;
+const STYLE_RECIPES = {
+    [VisualStyle.Minimalist]: `
+        Recipe: Minimalist / Swiss
+        - Typography: High-quality sans-serif (Inter, Helvetica).
+        - Layout: Strict grid structure, plenty of negative space.
+        - Accents: Single bold highlight color against white/gray.
+        - Details: Thin 1px borders, muted secondary text, no shadows.
+    `,
+    [VisualStyle.Corporate]: `
+        Recipe: Clean & Corporate
+        - Typography: System fonts (SF Pro, Inter) for trust.
+        - Layout: Clear hero section, feature cards with 24px+ corners.
+        - Colors: Trustworthy blues, crisp whites, subtle grays (#f5f2ed).
+        - Details: Functional clarity, simple data visualizations, clean shadows.
+    `,
+    [VisualStyle.Bento]: `
+        Recipe: Bento Grid
+        - Layout: Bento-box style grid with varying card sizes.
+        - Components: Cards with large rounded corners (24px-32px), subtle borders.
+        - Accents: Glassmorphism elements, subtle gradients within cards.
+        - Vibe: Modern, organized, "Apple-style" product showcase.
+    `,
+    [VisualStyle.Editorial]: `
+        Recipe: Editorial / Magazine
+        - Typography: Massive display headers (Anton, Playfair Display) with tight line-height (0.85).
+        - Layout: Bold overlapping elements, skewed transforms, massive images.
+        - Hierarchy: Deep contrast between enormous display type and tiny uppercase labels.
+        - Details: Negative letter-spacing on headers, strong asymmetric balance.
+    `,
+    [VisualStyle.Luxury]: `
+        Recipe: Luxury / Prestige
+        - Typography: Sophisticated serifs (Cormorant Garamond, Playfair Display).
+        - Layout: Exclusive feel, minimal content per section, vertical text accents.
+        - Colors: Warm off-whites (#f5f2ed), pure blacks, elegant gold/champagne accents.
+        - Details: Oval-masked images, very light font weights (300), 1px borders.
+    `,
+    [VisualStyle.Technical]: `
+        Recipe: Technical Dashboard
+        - Typography: Monospace for data (JetBrains Mono), italic serif for headers to humanize.
+        - Layout: Visible grid structure, scannable data columns, high information density.
+        - Colors: Muted backgrounds (#E4E3E0), stark black lines, scientific precision.
+        - Details: Invert-on-hover effects, timecodes, dashed borders.
+    `,
+    [VisualStyle.Atmospheric]: `
+        Recipe: Atmospheric / Immersive
+        - Layout: Full-screen immersive layouts, layered radial gradients.
+        - Details: Heavy background blurs (60px+), glassmorphism (backdrop-filter: blur(30px)).
+        - Vibe: Cinematic, dreamy, or focused. Great for music players or meditation apps.
+        - Colors: Deep space blacks, vibrant core glows.
+    `,
+    [VisualStyle.Brutalist]: `
+        Recipe: Neo-Brutalist
+        - Colors: Neon accents on stark white/black backgrounds.
+        - Layout: Thick 2px-4px black borders, graphic numbered sections (01, 02).
+        - Typography: Big bold sans-serifs, marquee animations.
+        - Vibe: Innovative, unconventional, high-energy.
+    `,
+    [VisualStyle.Cyberpunk]: `
+        Recipe: Cyberpunk / High-Tech
+        - Colors: Neon pinks, cyans, and deep purples on pitch black.
+        - Details: Glitch effects, scanline overlays, glowing text.
+        - Layout: Future-focused, asymmetric HUDs, data-heavy overlays.
+    `,
+    [VisualStyle.Playful]: `
+        Recipe: Playful & Vibrant
+        - Colors: Saturated, energetic palettes (orange, teal, yellow).
+        - Typography: Bouncy type, rounded fonts.
+        - Layout: Organic shapes, overlapping illustrations, big buttons.
+        - Vibe: Fun, approachable, high-energy.
+    `,
+    [VisualStyle.Vintage]: `
+        Recipe: Vintage & Retro
+        - Colors: Sepia tones, muted earth colors, grain textures.
+        - Typography: Slab serifs, display scripts.
+        - Layout: Traditional print-inspired layouts, paper textures.
+    `,
+    [VisualStyle.Glassmorphism]: `
+        Recipe: Modern Glassmorphism
+        - Details: Multi-layered glass surfaces, frosted glass effects.
+        - Colors: Pastel gradients behind semi-transparent cards.
+        - Layout: Floating elements with soft drop shadows.
+    `
+};
+
+export const generateHtmlFromPrompt = async (prompt: string, style?: VisualStyle): Promise<{ html: string; css: string }> => {
+    const recipe = style ? STYLE_RECIPES[style] : "";
+    const systemInstruction = `You are a Lead Product Designer. 
+    Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.
+    
+    STYLE GUIDELINES:
+    ${recipe}
+    
+    GENERAL PRINCIPLES:
+    ${UI_UX_PRO_MAX_RULES}`;
     const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
 Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).`;
