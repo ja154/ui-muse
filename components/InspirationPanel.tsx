@@ -17,7 +17,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTem
             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
             <div className="relative">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-100 font-mono tracking-tighter uppercase">HTML Templates</h2>
+                    <h2 className="text-xl font-bold text-brand-text font-mono tracking-tighter uppercase">HTML Templates</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {templates.map((template) => {
@@ -25,9 +25,9 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTem
                         const generatedHtml = generatedTemplates[template.id];
 
                         return (
-                            <div key={template.id} className="p-4 bg-brand-bg/60 rounded-xl border border-brand-border/80 flex flex-col justify-between transition-all duration-300 hover:border-brand-primary/50 hover:bg-white/5">
+                            <div key={template.id} className="p-4 bg-brand-bg rounded-xl border border-brand-border flex flex-col justify-between transition-all duration-300 hover:border-brand-primary/50 hover:bg-brand-primary/5">
                                 <div>
-                                    <h3 className="font-semibold text-slate-200">{template.name}</h3>
+                                    <h3 className="font-semibold text-brand-text">{template.name}</h3>
                                     <p className="text-sm text-brand-muted mb-4">Style: {template.style}</p>
                                 </div>
                                 <div className="flex items-center gap-2 mt-auto">
@@ -40,14 +40,14 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTem
                                         <>
                                             <button 
                                                 onClick={() => onUse(generatedHtml, 'base')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
                                                 title="Use this as your base HTML"
                                                 >
                                                  <CodeBracketIcon className="w-5 h-5"/> Use as Base
                                             </button>
                                             <button
                                                  onClick={() => onUse(generatedHtml, 'style')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
                                                 title="Use this to style your HTML"
                                             >
                                                 <SparkleIcon className="w-5 h-5" /> Use for Style

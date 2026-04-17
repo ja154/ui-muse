@@ -186,7 +186,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`px-4 py-3 min-h-[44px] text-sm font-bold rounded-lg transition-colors duration-200 ${
-                                        activeTab === tab.id ? 'text-slate-900 bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-white/10 hover:text-slate-200'
+                                        activeTab === tab.id ? 'text-black bg-brand-primary shadow-sm' : 'text-brand-muted hover:bg-brand-primary/10 hover:text-brand-text'
                                     }`}
                                 >
                                     {tab.label}

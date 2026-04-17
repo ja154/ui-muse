@@ -103,7 +103,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         <button
                             key={tab.mode}
                             onClick={() => setInputMode(tab.mode as InputMode)}
-                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-white/5 hover:text-slate-200'}`}
+                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
                         >
                             {tab.label}
                         </button>
@@ -114,7 +114,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {(inputMode === 'description' || inputMode === 'blueprint' || inputMode === 'design-system') && (
                         <>
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-200">
+                                <label className="block text-sm font-bold mb-2 text-brand-text">
                                     {inputMode === 'blueprint' ? '1. Describe the structure' : 
                                      inputMode === 'design-system' ? '1. Describe your brand or product' : 
                                      '1. Describe your UI idea'}
@@ -131,7 +131,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
                             {inputMode === 'description' && (
                                 <div>
-                                    <label className="block text-sm font-bold mb-2 text-slate-200">2. Choose a visual style</label>
+                                    <label className="block text-sm font-bold mb-2 text-brand-text">2. Choose a visual style</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {visualStyles.map((style) => (
                                             <button
@@ -139,7 +139,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                                 onClick={() => setSelectedStyle(style)}
                                                 disabled={isLoading}
                                                 className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-colors duration-200
-                                                    ${selectedStyle === style ? 'bg-brand-primary text-slate-900 shadow-md shadow-brand-primary/20' : 'bg-brand-bg/60 text-slate-300 hover:bg-brand-border hover:text-white'}`}
+                                                    ${selectedStyle === style ? 'bg-brand-primary text-slate-900 shadow-md shadow-brand-primary/20' : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary'}`}
                                             >
                                                 {style}
                                             </button>
@@ -153,21 +153,21 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'modify' && (
                         <>
                             <div>
-                                 <label className="block text-sm font-bold mb-2 text-slate-200">1. Your Existing HTML</label>
+                                 <label className="block text-sm font-bold mb-2 text-brand-text">1. Your Existing HTML</label>
                                  <textarea
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
                                     placeholder="Paste HTML to modify..."
-                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl font-mono text-xs text-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-slate-500"
+                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-200">2. Paste Style to Clone</label>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">2. Paste Style to Clone</label>
                                 <textarea
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
                                     placeholder="Paste HTML with desired styling..."
-                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl font-mono text-xs text-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-slate-500"
+                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
                                 />
                             </div>
                         </>
@@ -176,7 +176,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'clone' && (
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-200">Enter Website URL</label>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">Enter Website URL</label>
                                 <div className="relative">
                                     <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
                                     <input
@@ -184,14 +184,14 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                         value={urlInput}
                                         onChange={(e) => setUrlInput(e.target.value)}
                                         placeholder="https://stripe.com"
-                                        className="w-full p-4 pl-12 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-slate-200 outline-none placeholder:text-slate-500"
+                                        className="w-full p-4 pl-12 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-brand-text outline-none placeholder:text-brand-muted/50"
                                         disabled={isLoading}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-200 flex items-center gap-2">
+                                <label className="block text-sm font-bold mb-2 text-brand-text flex items-center gap-2">
                                     Visual Evidence & Analysis
                                     <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Enhanced</span>
                                 </label>
@@ -233,12 +233,12 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-200">Paste Content</label>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">Paste Content</label>
                                 <textarea
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}
                                     placeholder="Paste HTML, CSS, or any text content to provide more context..."
-                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-slate-200 outline-none placeholder:text-slate-500"
+                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -250,8 +250,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mb-4">
                                 <GenerateIcon className="w-8 h-8 text-brand-primary" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-200 mb-2">Interactive Wireframe Editor</h3>
-                            <p className="text-slate-400 text-sm max-w-xs mx-auto mb-6">
+                            <h3 className="text-xl font-bold text-brand-text mb-2">Interactive Wireframe Editor</h3>
+                            <p className="text-brand-muted text-sm max-w-xs mx-auto mb-6">
                                 Use the full-screen canvas on the right to design your wireframe visually, then generate UI from it.
                             </p>
                         </div>
