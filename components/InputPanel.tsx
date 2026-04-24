@@ -138,8 +138,10 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                                 key={style}
                                                 onClick={() => setSelectedStyle(style)}
                                                 disabled={isLoading}
-                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-colors duration-200
-                                                    ${selectedStyle === style ? 'bg-brand-primary text-slate-900 shadow-md shadow-brand-primary/20' : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary'}`}
+                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-300 transform
+                                                    ${selectedStyle === style 
+                                                        ? 'bg-brand-primary text-slate-900 shadow-lg shadow-brand-primary/30 scale-[1.02]' 
+                                                        : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-primary/10'}`}
                                             >
                                                 {style}
                                             </button>

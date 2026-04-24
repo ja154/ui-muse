@@ -25,7 +25,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTem
                         const generatedHtml = generatedTemplates[template.id];
 
                         return (
-                            <div key={template.id} className="p-4 bg-brand-bg rounded-xl border border-brand-border flex flex-col justify-between transition-all duration-300 hover:border-brand-primary/50 hover:bg-brand-primary/5">
+                            <div key={template.id} className="p-4 bg-brand-bg rounded-xl border border-brand-border flex flex-col justify-between transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-brand-primary/10 hover:border-brand-primary/50 hover:bg-brand-primary/5">
                                 <div>
                                     <h3 className="font-semibold text-brand-text">{template.name}</h3>
                                     <p className="text-sm text-brand-muted mb-4">Style: {template.style}</p>
