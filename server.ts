@@ -98,50 +98,9 @@ async function startServer() {
             // Small buffer for any post-scroll paint
             await new Promise((r) => setTimeout(r, 500));
 
-            // ── FIX: serialise HTML AFTER full scroll so all sections are in DOM ──
+            // ── FIX: extract title and HTML ──
             const html = await page.content();
             const title = await page.title();
-
-            // ── FIX: extract CSS custom properties from :root for colour fidelity ─
-            const cssVariables: Record<string, string> = await page.evaluate(`(() => {
-                const styles = getComputedStyle(document.documentElement);
-                const vars = {};
-                // iterate all declared custom properties
-                for (const sheet of Array.from(document.styleSheets)) {
-                    try {
-                        for (const rule of Array.from(sheet.cssRules ?? [])) {
-                            if (rule instanceof CSSStyleRule && rule.selectorText === ':root') {
-                                const ruleStyle = rule.style;
-                                for (let i = 0; i < ruleStyle.length; i++) {
-                                    const prop = ruleStyle[i];
-                                    if (prop.startsWith('--')) {
-                                        vars[prop] = styles.getPropertyValue(prop).trim();
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // Cross-origin stylesheets — skip
-                    }
-                }
-                return vars;
-            })()`) as any;
-
-            // ── FIX: scroll back to top so screenshot shows the hero/nav ─────────
-            await page.evaluate(`window.scrollTo(0, 0)`);
-            await new Promise((r) => setTimeout(r, 300));
-
-            const screenshotBuffer = await page.screenshot({
-                encoding: 'base64',
-                fullPage: false, // viewport-only (hero) — full-page at 2x crashes memory
-            });
-
-            // Also grab a full-page screenshot at lower quality for footer reference
-            const fullPageBuffer = await page.screenshot({
-                encoding: 'base64',
-                fullPage: true,
-                // clip to max 15000px tall to avoid OOM on very long pages
-            });
 
             await browser.close();
             browser = undefined;
@@ -149,11 +108,6 @@ async function startServer() {
             return res.json({
                 title,
                 html,
-                // FIX: return raw base64 WITHOUT the data-URI prefix.
-                // geminiService.ts expects raw base64 for inlineData.data.
-                screenshot: screenshotBuffer as string,
-                fullPageScreenshot: fullPageBuffer as string,
-                cssVariables: Object.keys(cssVariables).length > 0 ? cssVariables : undefined,
             });
 
         } catch (err: any) {

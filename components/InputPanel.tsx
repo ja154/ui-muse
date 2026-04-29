@@ -108,21 +108,22 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             
             <div className="relative flex flex-col h-full max-h-[calc(100vh-140px)]">
                 <div className="relative shrink-0 flex items-center">
-                    <div className="flex border-b border-brand-border/50 overflow-x-auto no-scrollbar snap-x scroll-smooth flex-1 pr-12">
+                    <div className="flex border-b border-brand-border/50 overflow-x-auto no-scrollbar snap-x scroll-smooth flex-1">
+                        <div className="flex-none w-4" aria-hidden="true" />
                         {mainTabs.map(tab => (
                             <button
                                 key={tab.mode}
                                 onClick={() => setInputMode(tab.mode as InputMode)}
-                                className={`flex-none px-4 py-4 min-h-[44px] text-[11px] uppercase tracking-wider font-bold transition-colors duration-200 snap-start whitespace-nowrap ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
+                                className={`flex-none px-4 py-4 min-h-[44px] text-[10px] uppercase tracking-wider font-bold transition-colors duration-200 snap-start whitespace-nowrap ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
                             >
                                 {tab.label}
                             </button>
                         ))}
+                        {/* More generous spacer for the right edge */}
+                        <div className="flex-none w-20 h-1" aria-hidden="true" />
                     </div>
-                    {/* Fade indicators for scrolling */}
-                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-brand-surface via-brand-surface/80 to-transparent pointer-events-none z-10 flex items-center justify-end pr-2 text-brand-muted/30">
-                        <ChevronRight className="w-4 h-4" />
-                    </div>
+                    {/* Simplified fade indicator without the overlapping icon */}
+                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-brand-surface via-brand-surface/90 to-transparent pointer-events-none z-10"></div>
                 </div>
 
                 <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">

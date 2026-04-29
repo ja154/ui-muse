@@ -571,7 +571,7 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
 
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     // ── 1. Scrape the target URL ──────────────────────────────────────────────
-    let scrapedData: { html?: string; title?: string; cssVariables?: any } = {};
+    let scrapedData: { html?: string; title?: string } = {};
 
     if (url) {
         try {
@@ -582,7 +582,8 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
                 body: JSON.stringify({ url })
             });
             if (scrapeResponse.ok) {
-                scrapedData = await scrapeResponse.json();
+                const data = await scrapeResponse.json();
+                scrapedData = { html: data.html, title: data.title };
                 console.log('Scraping successful');
             } else {
                 console.warn('[cloneWebsite] Scraper returned', scrapeResponse.status);
@@ -595,21 +596,19 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
     const systemInstruction = `You are an expert Web Architect and Frontend Reconstructor.
 
 Your task is to reproduce a website as a single, self-contained HTML file using Tailwind CSS.
-The output must represent the COMPLETE page structure—including Navigation, Hero, all content sections, and the Footer.
+Focus strictly on the semantic HTML structure and content provided.
 
 RECONSTRUCTION PROTOCOL:
-1. SEMANTIC STRUCTURE: Use the provided HTML structure or visual evidence to identify key sections (Header, Main, Section, Footer).
-2. TAILWIND ADAPTATION: Map the existing styling (colors, layout, spacing) to Tailwind CSS classes.
-3. CONTENT FIDELITY: Preserve all text content, headings, and links exactly as they appear in the source.
-4. PLACEHOLDER IMAGES: Use high-quality placeholder images (picsum.photos) that match the theme of the original site.
+1. SEMANTIC STRUCTURE: Use the provided HTML structure to identify key sections.
+2. TAILWIND ADAPTATION: Map the layout and typography to Tailwind CSS classes.
+3. CONTENT FIDELITY: Preserve all text content exactly as it appears in the source.
 
 MANDATORY RULES:
 1. Return ONLY valid JSON: { "html": "...", "css": "..." }.
 2. Use semantic HTML5 elements.
-3. The result MUST be vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
-4. Ensure the footer is present with copyright and navigation links.
-5. OCR: If screenshots are provided, extract all text and layout patterns from them.
-6. The user-provided HTML and text are the primary sources of truth for structure and content.
+3. The result MUST be vertically scrollable.
+4. Ensure the footer is present.
+5. The user-provided HTML and text are the primary sources of truth.
 `;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
@@ -623,19 +622,11 @@ MANDATORY RULES:
 
     if (scrapedData.html) {
         const safeHtml = safeHtmlTruncate(scrapedData.html, HTML_CONTEXT_CHARS);
-        userPrompt += `\n\nTarget HTML Structure:\n${safeHtml}`;
-    }
-
-    if (scrapedData.cssVariables) {
-        userPrompt += `\n\nTheme Variables:\n${JSON.stringify(scrapedData.cssVariables, null, 2)}`;
+        userPrompt += `\n\nTarget HTML Content:\n${safeHtml}`;
     }
 
     if (pastedContent.trim()) {
         userPrompt += `\n\nUser-provided HTML/Text Content:\n${pastedContent.trim()}`;
-    }
-
-    if (screenshots.length > 0) {
-        userPrompt += `\n\nPlease also consider the visual patterns shown in the attached screenshots.`;
     }
 
     userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }`;
