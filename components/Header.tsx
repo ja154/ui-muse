@@ -9,7 +9,7 @@ const Header: React.FC = () => {
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-brand-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-                        <SparkleIcon className="w-6 h-6 text-slate-900" />
+                        <SparkleIcon className="w-6 h-6 text-brand-bg" />
                     </div>
                     <h1 className="text-2xl font-semibold tracking-tight text-brand-text">
                         UI <span className="text-brand-primary">Muse</span>

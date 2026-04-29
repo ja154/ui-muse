@@ -6,17 +6,8 @@ import HistoryPanel from './components/HistoryPanel.tsx';
 import InspirationPanel from './components/InspirationPanel.tsx';
 import OutputTabs from './components/OutputTabs.tsx';
 import WireframeEditor from './components/WireframeEditor.tsx';
-import { 
-    enhancePrompt, 
-    generateImagePreview, 
-    modifyHtml, 
-    generateHtmlFromPrompt, 
-    cloneWebsite, 
-    generateBlueprint, 
-    generateFromWireframe,
-    generateDesignSystem
-} from './services/geminiService.ts';
-import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource } from './types.ts';
+import { analyzeHtml, enhancePrompt, generateImagePreview, modifyHtml, generateHtmlFromPrompt, cloneWebsite, generateBlueprint, generateFromWireframe, generateDesignSystem } from './services/geminiService.ts';
+import { VisualStyle, HistoryItem, InputMode, Template, GroundingSource, AnalysisResult } from './types.ts';
 
 const VISUAL_STYLES: VisualStyle[] = [
     VisualStyle.Minimalist,
@@ -54,11 +45,13 @@ const App: React.FC = () => {
     // Modify Mode State
     const [htmlInput, setHtmlInput] = useState<string>('');
     const [cloneHtmlInput, setCloneHtmlInput] = useState<string>('');
+    const [inspectHtmlInput, setInspectHtmlInput] = useState<string>('');
     
     // Output state
     const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
     const [htmlOutput, setHtmlOutput] = useState<string>('');
     const [cssOutput, setCssOutput] = useState<string>('');
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [groundingSources, setGroundingSources] = useState<GroundingSource[]>([]);
     
@@ -125,6 +118,7 @@ const App: React.FC = () => {
         setGeneratedPrompt('');
         setHtmlOutput('');
         setCssOutput('');
+        setAnalysisResult(null);
         setPreviewImage(null);
         setGroundingSources([]);
     };
@@ -237,6 +231,23 @@ const App: React.FC = () => {
                     cssOutput: css,
                     groundingSources: sources,
                 }, ...prev.slice(0, 19)]);
+            } else if (inputMode === 'inspect') {
+                if (!inspectHtmlInput.trim()) {
+                    alert('Please paste some HTML to inspect.');
+                    setIsLoading(false);
+                    return;
+                }
+                const result = await analyzeHtml(inspectHtmlInput);
+                setAnalysisResult(result);
+                // Also show the original HTML in the code view
+                setHtmlOutput(inspectHtmlInput);
+                setHistory(prev => [{
+                    id: Date.now().toString(),
+                    input: 'Deep Inspect: ' + (result.architecture.layout || 'Design DNA'),
+                    inputMode,
+                    htmlInput: inspectHtmlInput,
+                    analysisResult: result,
+                }, ...prev.slice(0, 19)]);
             } else if (inputMode === 'blueprint') {
                 const { html, css } = await generateBlueprint(userInput);
                 setHtmlOutput(html);
@@ -304,6 +315,9 @@ const App: React.FC = () => {
             setScreenshots(item.screenshots || []);
             setPastedContent(item.pastedContent || '');
             setGroundingSources(item.groundingSources || []);
+        } else if (item.inputMode === 'inspect') {
+            setInspectHtmlInput(item.htmlInput || '');
+            setAnalysisResult(item.analysisResult || null);
         } else if (item.inputMode === 'design-system') {
             setUserInput(item.input.replace('Design System: ', '') || '');
         } else if (item.inputMode === 'design') {
@@ -325,6 +339,7 @@ const App: React.FC = () => {
                                     generatedPrompt={generatedPrompt}
                                     htmlOutput={htmlOutput}
                                     cssOutput={cssOutput}
+                                    analysisResult={analysisResult}
                                     groundingSources={groundingSources}
                                     isLoading={isLoading}
                                     errors={error}
@@ -350,6 +365,8 @@ const App: React.FC = () => {
                                     setHtmlInput={setHtmlInput}
                                     cloneHtmlInput={cloneHtmlInput}
                                     setCloneHtmlInput={setCloneHtmlInput}
+                                    inspectHtmlInput={inspectHtmlInput}
+                                    setInspectHtmlInput={setInspectHtmlInput}
                                     selectedStyle={selectedStyle}
                                     setSelectedStyle={setSelectedStyle}
                                     visualStyles={VISUAL_STYLES}
@@ -364,6 +381,7 @@ const App: React.FC = () => {
                                     generatedPrompt={generatedPrompt}
                                     htmlOutput={htmlOutput}
                                     cssOutput={cssOutput}
+                                    analysisResult={analysisResult}
                                     groundingSources={groundingSources}
                                     isLoading={isLoading}
                                     errors={error}

@@ -320,30 +320,30 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
     };
 
     return (
-        <div className="flex flex-col h-[800px] w-full bg-[#1e1e1e] border border-white/10 rounded-lg overflow-hidden shadow-2xl font-sans">
+         <div className="flex flex-col min-h-[600px] h-[85vh] w-full bg-brand-surface border border-brand-border rounded-lg overflow-hidden shadow-2xl font-sans">
             {/* Top Bar */}
-            <div className="h-12 bg-[#252525] border-b border-white/10 flex items-center justify-between px-4 z-20">
+            <div className="h-12 bg-brand-surface border-b border-brand-border flex items-center justify-between px-4 z-20">
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => setInputMode('description')}
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-brand-muted hover:text-brand-text transition-colors"
                         title="Back to Describe"
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                    <div className="w-px h-4 bg-white/10"></div>
-                    <div className="flex items-center gap-2 text-slate-200 text-sm font-medium">
+                    <div className="w-px h-4 bg-brand-border"></div>
+                    <div className="flex items-center gap-2 text-brand-text text-sm font-medium">
                         <LayoutTemplate className="w-4 h-4 text-brand-primary" />
-                        Design Mode
+                        Design Canvas
                     </div>
                 </div>
                 <button 
                     onClick={handleGenerateClick}
                     disabled={isGenerating || shapes.length === 0}
-                    className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary/90 text-slate-900 text-sm font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary/90 text-brand-bg text-sm font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isGenerating ? (
-                        <div className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-3.5 h-3.5 border-2 border-brand-bg border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                         <Sparkles className="w-3.5 h-3.5" />
                     )}

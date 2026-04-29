@@ -1,5 +1,5 @@
 import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
-import { VisualStyle, GroundingSource } from '../types.ts';
+import { VisualStyle, GroundingSource, AnalysisResult } from '../types.ts';
 
 // Initializing the GoogleGenAI client with the API key from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -493,6 +493,78 @@ export const generateDesignSystem = async (query: string): Promise<any> => {
         return await response.json();
     } catch (error) {
         console.error("Error generating design system:", error);
+        throw error;
+    }
+};
+
+export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
+    const systemInstruction = `You are a Senior Design Engineer and Visual Architect. 
+    Your task is to analyze the provided HTML code and extract its Design DNA.
+    Identify design tokens (colors, typography, spacing patterns) and structural architecture (layout patterns, component hierarchy).
+    
+    Be extremely precise with hex codes and Tailwind patterns.
+    Identify the underlying layout type (e.g., Bento, Holy Grail, Dashboard, F-Pattern).`;
+
+    const userPrompt = `Analyze this HTML and provide a detailed Design DNA report in JSON format.
+    
+    HTML:
+    ${safeHtmlTruncate(html, 15000)}
+    
+    Return a JSON object following this schema:
+    {
+        "designTokens": {
+            "colors": ["#hex", "text-gray-900", ...],
+            "fonts": ["Inter", "serif", ...],
+            "spacing": "strict 4px rhythm",
+            "radius": "xl (12px)"
+        },
+        "architecture": {
+            "layout": "Bento Grid with sticky sidebar",
+            "components": ["Card", "Badge", "HeroSection"],
+            "sections": ["Navigation", "Hero", "Features"]
+        },
+        "visualSummary": "A clean, modern technical dashboard using high-contrast typography and subtle glassmorphism."
+    }`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: userPrompt,
+            config: { 
+                systemInstruction,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        designTokens: {
+                            type: Type.OBJECT,
+                            properties: {
+                                colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                fonts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                spacing: { type: Type.STRING },
+                                radius: { type: Type.STRING }
+                            },
+                            required: ['colors', 'fonts', 'spacing', 'radius']
+                        },
+                        architecture: {
+                            type: Type.OBJECT,
+                            properties: {
+                                layout: { type: Type.STRING },
+                                components: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                sections: { type: Type.ARRAY, items: { type: Type.STRING } }
+                            },
+                            required: ['layout', 'components', 'sections']
+                        },
+                        visualSummary: { type: Type.STRING }
+                    },
+                    required: ['designTokens', 'architecture', 'visualSummary']
+                }
+            }
+        });
+        
+        return JSON.parse(response.text || '{}') as AnalysisResult;
+    } catch (error) {
+        console.error("Error analyzing HTML:", error);
         throw error;
     }
 };

@@ -14,7 +14,22 @@ export enum VisualStyle {
     Vintage = 'Vintage & Retro'
 }
 
-export type InputMode = 'description' | 'modify' | 'clone' | 'blueprint' | 'design' | 'design-system';
+export type InputMode = 'description' | 'modify' | 'clone' | 'blueprint' | 'design' | 'design-system' | 'inspect';
+
+export interface AnalysisResult {
+    designTokens: {
+        colors: string[];
+        fonts: string[];
+        spacing: string;
+        radius: string;
+    };
+    architecture: {
+        layout: string;
+        components: string[];
+        sections: string[];
+    };
+    visualSummary: string;
+}
 
 export interface Template {
     id: string;
@@ -53,4 +68,5 @@ export interface HistoryItem {
     // Common output
     htmlOutput?: string; 
     cssOutput?: string;
+    analysisResult?: AnalysisResult | null;
 }

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { VisualStyle, InputMode } from '../types.ts';
-import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon, PhotoIcon, XMarkIcon } from './icons.tsx';
+import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon, PhotoIcon, XMarkIcon, SearchIcon } from './icons.tsx';
+import { ChevronRight } from 'lucide-react';
 
 interface InputPanelProps {
     inputMode: InputMode;
@@ -17,6 +18,8 @@ interface InputPanelProps {
     setHtmlInput: (value: string) => void;
     cloneHtmlInput: string;
     setCloneHtmlInput: (value: string) => void;
+    inspectHtmlInput: string;
+    setInspectHtmlInput: (value: string) => void;
     selectedStyle: VisualStyle;
     setSelectedStyle: (style: VisualStyle) => void;
     visualStyles: VisualStyle[];
@@ -29,6 +32,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
         screenshots, setScreenshots, pastedContent, setPastedContent,
         htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput, 
+        inspectHtmlInput, setInspectHtmlInput,
         selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading
     } = props;
 
@@ -38,6 +42,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         (inputMode === 'description' && !userInput.trim()) ||
         (inputMode === 'blueprint' && !userInput.trim()) ||
         (inputMode === 'design-system' && !userInput.trim()) ||
+        (inputMode === 'inspect' && !inspectHtmlInput.trim()) ||
         (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
         (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
     );
@@ -63,16 +68,18 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
     const mainTabs = [
         { mode: 'description', label: 'Describe' },
-        { mode: 'blueprint', label: 'Blueprint' },
-        { mode: 'design-system', label: 'Design System' },
-        { mode: 'design', label: 'Design' },
+        { mode: 'blueprint', label: 'Concept' },
+        { mode: 'design-system', label: 'System' },
+        { mode: 'inspect', label: 'Audit' },
+        { mode: 'design', label: 'Draw' },
         { mode: 'modify', label: 'Remix' },
-        { mode: 'clone', label: 'Clone Web' }
+        { mode: 'clone', label: 'Clone' }
     ];
     
     const getButtonText = () => {
         if (isLoading) {
             if (inputMode === 'clone') return 'Analyzing & Cloning...';
+            if (inputMode === 'inspect') return 'Deep Scanning HTML...';
             if (inputMode === 'modify') return 'Remixing...';
             if (inputMode === 'blueprint') return 'Drafting Blueprint...';
             if (inputMode === 'design-system') return 'Generating System...';
@@ -87,6 +94,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     
     const getButtonIcon = () => {
         if (isLoading) return <LoadingSpinner className="-ml-1 mr-3 h-5 w-5 text-black" />;
+        if (inputMode === 'inspect') return <SearchIcon className="w-6 h-6 border rounded-full p-1" />;
         if (inputMode === 'modify') return <CodeBracketIcon className="w-6 h-6" />;
         if (inputMode === 'clone') return <GlobeAltIcon className="w-6 h-6" />;
         if (inputMode === 'design-system') return <GenerateIcon className="w-6 h-6" />;
@@ -97,20 +105,26 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group overflow-hidden">
             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/30 to-brand-secondary/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
             
-            <div className="relative">
-                <div className="flex border-b border-brand-border/50">
-                    {mainTabs.map(tab => (
-                        <button
-                            key={tab.mode}
-                            onClick={() => setInputMode(tab.mode as InputMode)}
-                            className={`flex-1 p-4 min-h-[44px] text-sm font-bold transition-colors duration-200 ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+            <div className="relative flex flex-col h-full max-h-[85vh]">
+                <div className="relative shrink-0 flex items-center">
+                    <div className="flex border-b border-brand-border/50 overflow-x-auto no-scrollbar snap-x scroll-smooth flex-1 pr-12">
+                        {mainTabs.map(tab => (
+                            <button
+                                key={tab.mode}
+                                onClick={() => setInputMode(tab.mode as InputMode)}
+                                className={`flex-none px-4 py-4 min-h-[44px] text-[11px] uppercase tracking-wider font-bold transition-colors duration-200 snap-start whitespace-nowrap ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Fade indicators for scrolling */}
+                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-brand-surface via-brand-surface/80 to-transparent pointer-events-none z-10 flex items-center justify-end pr-2 text-brand-muted/30">
+                        <ChevronRight className="w-4 h-4" />
+                    </div>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
                     {(inputMode === 'description' || inputMode === 'blueprint' || inputMode === 'design-system') && (
                         <>
                             <div>
@@ -125,23 +139,23 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : 
                                                  inputMode === 'design-system' ? "e.g., A modern fintech app for Gen Z with a focus on trust and speed" :
                                                  "e.g., A sleek dark-mode fitness dashboard"}
-                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-slate-200 outline-none placeholder:text-slate-500"
+                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
                                     disabled={isLoading}
                                 />
                             </div>
                             {inputMode === 'description' && (
                                 <div>
                                     <label className="block text-sm font-bold mb-2 text-brand-text">2. Choose a visual style</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {visualStyles.map((style) => (
                                             <button
                                                 key={style}
                                                 onClick={() => setSelectedStyle(style)}
                                                 disabled={isLoading}
-                                                className={`px-4 py-3 min-h-[44px] text-sm font-medium rounded-xl transition-all duration-300 transform
+                                                className={`px-3 py-2.5 min-h-[40px] text-[11px] font-bold rounded-lg transition-all duration-300 transform
                                                     ${selectedStyle === style 
-                                                        ? 'bg-brand-primary text-slate-900 shadow-lg shadow-brand-primary/30 scale-[1.02]' 
-                                                        : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-primary/10'}`}
+                                                        ? 'bg-brand-primary text-brand-bg shadow-lg shadow-brand-primary/30 scale-[1.02]' 
+                                                        : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.02]'}`}
                                             >
                                                 {style}
                                             </button>
@@ -152,6 +166,21 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         </>
                     )}
                     
+                    {inputMode === 'inspect' && (
+                        <div>
+                             <label className="block text-sm font-bold mb-2 text-brand-text">1. Paste HTML for Analysis</label>
+                             <p className="text-[10px] text-brand-muted mb-3">
+                                 Our AI will extract design tokens, architecture, and structural components from the code to help you understand how it was built.
+                             </p>
+                             <textarea
+                                value={inspectHtmlInput}
+                                onChange={(e) => setInspectHtmlInput(e.target.value)}
+                                placeholder="Paste HTML here to perform a Deep Design Audit..."
+                                className="w-full h-48 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
+                            />
+                        </div>
+                    )}
+
                     {inputMode === 'modify' && (
                         <>
                             <div>
@@ -259,17 +288,20 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         </div>
                     )}
                     
-                    {inputMode !== 'design' && (
+                </div>
+
+                {inputMode !== 'design' && (
+                    <div className="p-6 border-t border-brand-border/50 shrink-0">
                         <button
                             onClick={onGenerate}
                             disabled={isGenerateDisabled}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-slate-900 bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-brand-bg bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {getButtonIcon()}
                             {getButtonText()}
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );
