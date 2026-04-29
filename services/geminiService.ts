@@ -571,7 +571,7 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
 
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
     // ── 1. Scrape the target URL ──────────────────────────────────────────────
-    let scrapedData: { html?: string; screenshot?: string; fullPageScreenshot?: string; title?: string; cssVariables?: any } = {};
+    let scrapedData: { html?: string; title?: string; cssVariables?: any } = {};
 
     if (url) {
         try {
@@ -592,92 +592,50 @@ export const cloneWebsite = async (url: string, screenshots: string[] = [], past
         }
     }
 
-    const systemInstruction = `You are a Pixel-Perfect Web Reconstructor and Visual UI/UX Analyst.
+    const systemInstruction = `You are an expert Web Architect and Frontend Reconstructor.
 
-Your task: reproduce the provided website as a single self-contained HTML file
-with an embedded <style> block. The output must cover the COMPLETE PAGE from the
-very first element to the very last — including NAVIGATION, HERO, ALL SECTIONS,
-and the FOOTER with all its columns, links, and copyright line.
+Your task is to reproduce a website as a single, self-contained HTML file using Tailwind CSS.
+The output must represent the COMPLETE page structure—including Navigation, Hero, all content sections, and the Footer.
 
-VISUAL ANALYSIS PROTOCOL:
-1. ANALYZE COLORS: Extract exact hex codes or closest Tailwind colors from the screenshots. Look at backgrounds, text, buttons, and borders.
-2. ANALYZE TYPOGRAPHY: Identify font weights (light, normal, bold), sizes, and styles (serif, sans-serif, mono) from the images.
-3. ANALYZE SPACING: Observe the padding, margins, and gaps between elements. Use Tailwind's spacing scale (p-4, m-8, gap-4) to match the visual density.
-4. ANALYZE IMAGERY: Note the content and style of images. Use descriptive placeholder URLs (e.g., picsum.photos/seed/...) that match the visual theme.
-
-COMPONENT IDENTIFICATION PROTOCOL:
-1. DECONSTRUCT THE PAGE: Break down the visual evidence into distinct UI components:
-   - NAVIGATION: Identify the logo, menu links, CTA buttons, and mobile menu triggers.
-   - HERO SECTION: Identify the main heading, subtext, primary CTA, and background elements (images/gradients).
-   - FEATURE GRIDS: Recognize repeating patterns of icons, titles, and descriptions.
-   - CONTENT BLOCKS: Identify alternating text/image sections.
-   - TESTIMONIALS/SOCIAL PROOF: Recognize quotes, avatars, and logo clouds.
-   - FORMS/INPUTS: Identify contact forms, newsletter signups, and search bars.
-   - FOOTER: Identify site maps, social links, legal text, and secondary branding.
-2. RECONSTRUCT WITH SEMANTIC PRECISION: Use the identified components to build a structured HTML document that mirrors the visual hierarchy.
+RECONSTRUCTION PROTOCOL:
+1. SEMANTIC STRUCTURE: Use the provided HTML structure or visual evidence to identify key sections (Header, Main, Section, Footer).
+2. TAILWIND ADAPTATION: Map the existing styling (colors, layout, spacing) to Tailwind CSS classes.
+3. CONTENT FIDELITY: Preserve all text content, headings, and links exactly as they appear in the source.
+4. PLACEHOLDER IMAGES: Use high-quality placeholder images (picsum.photos) that match the theme of the original site.
 
 MANDATORY RULES:
-1. Output ONLY valid JSON. No markdown fences, no prose, no comments outside JSON.
-2. JSON schema: { "html": "<full HTML string>", "css": "<all CSS as a string>" }
-3. The html value MUST end with </html>. Never truncate.
-4. Reproduce every visible section. If you are running low on space, compress
-   whitespace and shorten comments — but NEVER omit the footer or any section.
-5. Use semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
-6. Inline all CSS inside a <style> tag in <head>. The css field may be empty "".
-7. Use CSS custom properties (variables) for all colors and spacing.
-8. All interactive elements must have cursor:pointer and visible focus states. For input fields (text, textarea, select, etc.), implement a clear focus state using Tailwind CSS (e.g., focus:border-primary focus:ring-1 focus:ring-primary).
-9. The footer must contain: logo/brand, navigation columns, social links, and
-   a copyright line with the current year.
-10. NEVER stop generating before the closing </html> tag.
-11. SCROLLABILITY: The resulting page MUST be vertically scrollable. DO NOT use 
-    'h-screen', 'fixed', or 'overflow-hidden' on the body or main wrapper. 
-    Ensure the page height is determined by its content.
-12. VISUAL FIDELITY: Prioritize the visual appearance shown in the SCREENSHOTS. 
-    The scraped HTML is for content and structure reference, but the screenshots 
-    are the source of truth for layout, colors, and spacing.
-13. OCR & CONTENT: Extract all visible text from the screenshots accurately. If the scraped HTML is missing content shown in images, use the image content.
-
-${UI_UX_PRO_MAX_RULES}`;
+1. Return ONLY valid JSON: { "html": "...", "css": "..." }.
+2. Use semantic HTML5 elements.
+3. The result MUST be vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
+4. Ensure the footer is present with copyright and navigation links.
+5. OCR: If screenshots are provided, extract all text and layout patterns from them.
+6. The user-provided HTML and text are the primary sources of truth for structure and content.
+`;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
     let userPrompt = url
-        ? `Reconstruct the website at ${url} as a complete, pixel-perfect HTML page. 
-           
-           VISUAL REASONING STEP:
-           1. Carefully examine ALL provided screenshots (including the scraped ones and the ones uploaded by the user). 
-           2. DECONSTRUCT the page into its core components (Navigation, Hero, Features, Testimonials, Footer, etc.).
-           3. Identify the primary color palette, the typography used, and the overall layout structure from these images. 
-           The user-uploaded screenshots are the HIGHEST priority for visual fidelity.
-           
-           Then, use the scraped HTML as a reference for content and semantic structure, but ALWAYS defer to the screenshots for the final visual appearance.
-           
-           Ensure the entire page is captured, including the footer.`
-        : `Reconstruct the website shown in the provided screenshots as a complete, pixel-perfect HTML page. 
-        
-           VISUAL REASONING STEP:
-           1. Carefully analyze every pixel of ALL provided images. 
-           2. IDENTIFY and DECONSTRUCT all UI components (Navigation, Hero, Features, Testimonials, Footer, etc.), their exact positioning, colors, and font styles. 
-           The user has provided these screenshots as the primary source of truth.
-           3. Extract all text content from the images using OCR. 
-           
-           Reconstruct the UI with high fidelity using Tailwind CSS. Ensure the entire page is captured, including the footer.`;
+        ? `Clone the website at ${url}. Use the provided HTML and text context to reconstruct the page with Tailwind CSS.`
+        : `Reconstruct the UI shown in the provided materials as a high-fidelity Tailwind CSS page.`;
 
     if (scrapedData.title) {
         userPrompt += `\nPage title: "${scrapedData.title}"`;
     }
 
     if (scrapedData.html) {
-        // FIX: safe truncation — never mid-tag, no trailing "..." that confuses the model
         const safeHtml = safeHtmlTruncate(scrapedData.html, HTML_CONTEXT_CHARS);
-        userPrompt += `\n\nScraped HTML Structure (for structure/content reference):\n${safeHtml}`;
+        userPrompt += `\n\nTarget HTML Structure:\n${safeHtml}`;
     }
 
     if (scrapedData.cssVariables) {
-        userPrompt += `\n\nCSS Custom Properties (Reference):\n${JSON.stringify(scrapedData.cssVariables, null, 2)}`;
+        userPrompt += `\n\nTheme Variables:\n${JSON.stringify(scrapedData.cssVariables, null, 2)}`;
     }
 
     if (pastedContent.trim()) {
-        userPrompt += `\n\nAdditional context provided by user:\n${pastedContent.trim()}`;
+        userPrompt += `\n\nUser-provided HTML/Text Content:\n${pastedContent.trim()}`;
+    }
+
+    if (screenshots.length > 0) {
+        userPrompt += `\n\nPlease also consider the visual patterns shown in the attached screenshots.`;
     }
 
     userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }`;
@@ -685,23 +643,7 @@ ${UI_UX_PRO_MAX_RULES}`;
     // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
 
-    const scrapedShots = [
-        ...(scrapedData.screenshot ? [scrapedData.screenshot] : []),
-        ...(scrapedData.fullPageScreenshot ? [scrapedData.fullPageScreenshot] : []),
-    ];
-
-    if (scrapedShots.length > 0) {
-        parts.push({ text: `--- SCRAPED SCREENSHOTS (Reference Only) ---` });
-        for (const shot of scrapedShots) {
-            const rawB64 = stripDataUriPrefix(shot);
-            if (rawB64) {
-                parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
-            }
-        }
-    }
-
     if (screenshots.length > 0) {
-        parts.push({ text: `--- USER-UPLOADED SCREENSHOTS (Primary Source of Truth) ---` });
         for (const shot of screenshots) {
             const rawB64 = stripDataUriPrefix(shot);
             if (rawB64) {

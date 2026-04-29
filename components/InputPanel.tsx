@@ -25,6 +25,7 @@ interface InputPanelProps {
     visualStyles: VisualStyle[];
     onGenerate: () => void;
     isLoading: boolean;
+    currentHtml?: string;
 }
 
 const InputPanel: React.FC<InputPanelProps> = (props) => {
@@ -105,7 +106,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group overflow-hidden">
             <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/30 to-brand-secondary/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
             
-            <div className="relative flex flex-col h-full max-h-[85vh]">
+            <div className="relative flex flex-col h-full max-h-[calc(100vh-140px)]">
                 <div className="relative shrink-0 flex items-center">
                     <div className="flex border-b border-brand-border/50 overflow-x-auto no-scrollbar snap-x scroll-smooth flex-1 pr-12">
                         {mainTabs.map(tab => (
@@ -183,8 +184,18 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
                     {inputMode === 'modify' && (
                         <>
-                            <div>
-                                 <label className="block text-sm font-bold mb-2 text-brand-text">1. Your Existing HTML</label>
+                            <div className="space-y-4">
+                                 <div className="flex items-center justify-between">
+                                    <label className="block text-sm font-bold text-brand-text">1. Your Existing HTML</label>
+                                    {props.currentHtml && (
+                                        <button 
+                                            onClick={() => setHtmlInput(props.currentHtml || '')}
+                                            className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-1 rounded hover:bg-brand-primary/20 transition-colors uppercase font-bold"
+                                        >
+                                            Use Current Output
+                                        </button>
+                                    )}
+                                 </div>
                                  <textarea
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
@@ -192,8 +203,18 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                     className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">2. Paste Style to Clone</label>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-sm font-bold text-brand-text">2. Paste Style to Clone</label>
+                                    {props.currentHtml && (
+                                        <button 
+                                            onClick={() => setCloneHtmlInput(props.currentHtml || '')}
+                                            className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-1 rounded hover:bg-brand-primary/20 transition-colors uppercase font-bold"
+                                        >
+                                            Use Current Output
+                                        </button>
+                                    )}
+                                </div>
                                 <textarea
                                     value={cloneHtmlInput}
                                     onChange={(e) => setCloneHtmlInput(e.target.value)}
@@ -207,14 +228,14 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     {inputMode === 'clone' && (
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">Enter Website URL</label>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">1. Target Website URL</label>
                                 <div className="relative">
                                     <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
                                     <input
                                         type="url"
                                         value={urlInput}
                                         onChange={(e) => setUrlInput(e.target.value)}
-                                        placeholder="https://stripe.com"
+                                        placeholder="https://example.com"
                                         className="w-full p-4 pl-12 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-brand-text outline-none placeholder:text-brand-muted/50"
                                         disabled={isLoading}
                                     />
@@ -222,54 +243,29 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text flex items-center gap-2">
-                                    Visual Evidence & Analysis
-                                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded uppercase">Enhanced</span>
-                                </label>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    className="hidden" 
-                                    accept="image/*" 
-                                    multiple 
-                                    onChange={handleFileUpload}
-                                />
-                                
-                                <div className="grid grid-cols-2 gap-3">
-                                    {screenshots.map((src, i) => (
-                                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-brand-border group/img">
-                                            <img src={src} className="w-full h-full object-cover" />
-                                            <button 
-                                                onClick={() => removeScreenshot(i)}
-                                                className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-white hover:bg-red-500 transition-colors opacity-0 group-hover/img:opacity-100"
-                                            >
-                                                <XMarkIcon className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                    {screenshots.length < 4 && (
-                                        <button 
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="aspect-square border-2 border-dashed border-brand-border rounded-lg flex flex-col items-center justify-center gap-1 text-brand-muted hover:border-brand-primary hover:text-brand-primary transition-all bg-black/20"
-                                        >
-                                            <PhotoIcon className="w-6 h-6" />
-                                            <span className="text-[10px] font-bold">ADD SCREENSHOT</span>
-                                        </button>
-                                    )}
-                                </div>
-                                <p className="text-[10px] text-brand-muted mt-3 italic">
-                                    Gemini now performs deep visual reasoning on your screenshots to extract exact colors, typography, and layout patterns. 
-                                    <span className="text-brand-primary font-bold"> Uploaded images are used as the primary source of truth.</span>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">2. Paste Source HTML (Optional)</label>
+                                <p className="text-[10px] text-brand-muted mb-2">
+                                    Providing raw HTML directly gives the highest fidelity results.
                                 </p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">Paste Content</label>
                                 <textarea
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}
-                                    placeholder="Paste HTML, CSS, or any text content to provide more context..."
-                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
+                                    placeholder="Paste HTML here for precision cloning..."
+                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50 font-mono text-[11px]"
+                                    disabled={isLoading}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">3. Additional Context (Optional)</label>
+                                <p className="text-[10px] text-brand-muted mb-2">
+                                    Add any specific instructions or requirements for this clone.
+                                </p>
+                                <textarea
+                                    value={userInput}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder="e.g., Make it responsive, use a different font..."
+                                    className="w-full h-24 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
                                     disabled={isLoading}
                                 />
                             </div>

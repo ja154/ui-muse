@@ -349,7 +349,7 @@ const App: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up">
+                            <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up lg:sticky lg:top-8 h-fit">
                                 <InputPanel
                                     inputMode={inputMode}
                                     setInputMode={setInputMode}
@@ -372,6 +372,7 @@ const App: React.FC = () => {
                                     visualStyles={VISUAL_STYLES}
                                     onGenerate={handleGenerate}
                                     isLoading={isLoading}
+                                    currentHtml={htmlOutput}
                                 />
                             </div>
 
