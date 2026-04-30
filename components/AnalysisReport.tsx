@@ -95,6 +95,19 @@ const AnalysisReport: React.FC<AnalysisReportProps> = ({ result }) => {
                                 ))}
                             </div>
                         </div>
+
+                        {result.architecture.schema && result.architecture.schema.length > 0 && (
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-brand-muted mb-2 block">Semantic Elements / Schema</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {result.architecture.schema.map((tag, i) => (
+                                        <span key={i} className="px-2 py-0.5 bg-brand-secondary/5 text-brand-secondary text-[10px] font-mono rounded-md border border-brand-secondary/20">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

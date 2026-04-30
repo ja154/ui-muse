@@ -353,21 +353,21 @@ const WireframeEditor: React.FC<WireframeEditorProps> = ({ onGenerate, isGenerat
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Left Sidebar - Tools */}
-                <div className="w-14 bg-[#252525] border-r border-white/10 flex flex-col items-center py-3 gap-2 z-10 overflow-y-auto">
-                    <button onClick={() => setTool('select')} className={`p-2.5 rounded-lg transition-colors ${tool === 'select' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Select (V)">
+                <div className="w-14 bg-brand-surface border-r border-brand-border flex flex-col items-center py-3 gap-2 z-10 overflow-y-auto">
+                    <button onClick={() => setTool('select')} className={`p-2.5 rounded-lg transition-colors ${tool === 'select' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-muted hover:bg-brand-bg/50 hover:text-brand-text'}`} title="Select (V)">
                         <MousePointer2 className="w-4 h-4" />
                     </button>
-                    <div className="w-6 h-px bg-white/10 my-1"></div>
-                    <button onClick={() => setTool('rectangle')} className={`p-2.5 rounded-lg transition-colors ${tool === 'rectangle' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Rectangle (R)">
+                    <div className="w-6 h-px bg-brand-border my-1"></div>
+                    <button onClick={() => setTool('rectangle')} className={`p-2.5 rounded-lg transition-colors ${tool === 'rectangle' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-muted hover:bg-brand-bg/50 hover:text-brand-text'}`} title="Rectangle (R)">
                         <Square className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setTool('circle')} className={`p-2.5 rounded-lg transition-colors ${tool === 'circle' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Ellipse (O)">
+                    <button onClick={() => setTool('circle')} className={`p-2.5 rounded-lg transition-colors ${tool === 'circle' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-muted hover:bg-brand-bg/50 hover:text-brand-text'}`} title="Ellipse (O)">
                         <CircleIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setTool('text')} className={`p-2.5 rounded-lg transition-colors ${tool === 'text' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Text (T)">
+                    <button onClick={() => setTool('text')} className={`p-2.5 rounded-lg transition-colors ${tool === 'text' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-muted hover:bg-brand-bg/50 hover:text-brand-text'}`} title="Text (T)">
                         <Type className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setTool('image')} className={`p-2.5 rounded-lg transition-colors ${tool === 'image' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Image Placeholder (I)">
+                    <button onClick={() => setTool('image')} className={`p-2.5 rounded-lg transition-colors ${tool === 'image' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-muted hover:bg-brand-bg/50 hover:text-brand-text'}`} title="Image Placeholder (I)">
                         <ImageIcon className="w-4 h-4" />
                     </button>
                     <button onClick={() => setTool('button')} className={`p-2.5 rounded-lg transition-colors ${tool === 'button' ? 'bg-brand-primary/20 text-brand-primary' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`} title="Button (B)">

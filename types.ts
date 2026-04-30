@@ -27,6 +27,7 @@ export interface AnalysisResult {
         layout: string;
         components: string[];
         sections: string[];
+        schema: string[];
     };
     visualSummary: string;
 }

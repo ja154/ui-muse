@@ -145,11 +145,10 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
             }
         }
 
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-            newWindow.document.write(fullHtml);
-            newWindow.document.close();
-        }
+        const blob = new Blob([fullHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     
     const tabsConfig: { id: Tab; label: string; icon: React.FC<any> }[] = [];

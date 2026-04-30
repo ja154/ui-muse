@@ -500,10 +500,10 @@ export const generateDesignSystem = async (query: string): Promise<any> => {
 export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
     const systemInstruction = `You are a Senior Design Engineer and Visual Architect. 
     Your task is to analyze the provided HTML code and extract its Design DNA.
-    Identify design tokens (colors, typography, spacing patterns) and structural architecture (layout patterns, component hierarchy).
+    Identify design tokens (colors, typography, spacing patterns), structural architecture, and exactly what HTML semantic elements, custom tags, or schemas are used to compose the site.
     
     Be extremely precise with hex codes and Tailwind patterns.
-    Identify the underlying layout type (e.g., Bento, Holy Grail, Dashboard, F-Pattern).`;
+    Identify the underlying layout type (e.g., Bento, Holy Grail, Dashboard, F-Pattern) and structural schema.`;
 
     const userPrompt = `Analyze this HTML and provide a detailed Design DNA report in JSON format.
     
@@ -521,7 +521,8 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
         "architecture": {
             "layout": "Bento Grid with sticky sidebar",
             "components": ["Card", "Badge", "HeroSection"],
-            "sections": ["Navigation", "Hero", "Features"]
+            "sections": ["Navigation", "Hero", "Features"],
+            "schema": ["<main>", "<article>", "<custom-header>", "role='navigation'"]
         },
         "visualSummary": "A clean, modern technical dashboard using high-contrast typography and subtle glassmorphism."
     }`;
@@ -551,9 +552,10 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
                             properties: {
                                 layout: { type: Type.STRING },
                                 components: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                sections: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                sections: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                schema: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Detected HTML tags, custom elements, ARIA roles, or schema.org microdata" }
                             },
-                            required: ['layout', 'components', 'sections']
+                            required: ['layout', 'components', 'sections', 'schema']
                         },
                         visualSummary: { type: Type.STRING }
                     },

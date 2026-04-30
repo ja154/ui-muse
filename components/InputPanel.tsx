@@ -119,11 +119,11 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                 {tab.label}
                             </button>
                         ))}
-                        {/* More generous spacer for the right edge */}
-                        <div className="flex-none w-20 h-1" aria-hidden="true" />
+                        {/* Small spacer for the right edge */}
+                        <div className="flex-none w-4" aria-hidden="true" />
                     </div>
                     {/* Simplified fade indicator without the overlapping icon */}
-                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-brand-surface via-brand-surface/90 to-transparent pointer-events-none z-10"></div>
+                    {/* The fade gradient was covering the last tab on narrow windows, so it's removed */}
                 </div>
 
                 <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
