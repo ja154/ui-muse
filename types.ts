@@ -30,6 +30,10 @@ export interface AnalysisResult {
         schema: string[];
     };
     visualSummary: string;
+    issues?: {
+        runtime: string[];
+        visual: string[];
+    };
 }
 
 export interface Template {

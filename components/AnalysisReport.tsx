@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnalysisResult } from '../types';
-import { Layout, Palette, Type, Box, Layers, Search } from 'lucide-react';
+import { Layout, Palette, Type, Box, Layers, Search, AlertTriangle } from 'lucide-react';
 
 interface AnalysisReportProps {
     result: AnalysisResult;
@@ -110,6 +110,41 @@ const AnalysisReport: React.FC<AnalysisReportProps> = ({ result }) => {
                         )}
                     </div>
                 </div>
+
+                {result.issues && (result.issues.runtime.length > 0 || result.issues.visual.length > 0) && (
+                    <div className="bg-brand-surface/70 backdrop-blur-md rounded-xl p-6 border border-brand-border/50">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-red-500/10 rounded-lg">
+                                <SearchIcon className="w-5 h-5 text-red-500" />
+                            </div>
+                            <h3 className="font-bold text-brand-text">Detected Issues</h3>
+                        </div>
+
+                        <div className="space-y-6">
+                            {result.issues.visual && result.issues.visual.length > 0 && (
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-brand-muted mb-2 block">Visual & Layout Issues</label>
+                                    <ul className="list-disc list-inside space-y-1 text-sm text-brand-text/80">
+                                        {result.issues.visual.map((issue, i) => (
+                                            <li key={i}>{issue}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {result.issues.runtime && result.issues.runtime.length > 0 && (
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-brand-muted mb-2 block">Runtime & Accessibility Issues</label>
+                                    <ul className="list-disc list-inside space-y-1 text-sm text-brand-text/80">
+                                        {result.issues.runtime.map((issue, i) => (
+                                            <li key={i}>{issue}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

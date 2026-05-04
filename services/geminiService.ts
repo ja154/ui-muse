@@ -501,6 +501,7 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
     const systemInstruction = `You are a Senior Design Engineer and Visual Architect. 
     Your task is to analyze the provided HTML code and extract its Design DNA.
     Identify design tokens (colors, typography, spacing patterns), structural architecture, and exactly what HTML semantic elements, custom tags, or schemas are used to compose the site.
+    Also, identify any potential runtime/accessibility issues and visual/layout issues.
     
     Be extremely precise with hex codes and Tailwind patterns.
     Identify the underlying layout type (e.g., Bento, Holy Grail, Dashboard, F-Pattern) and structural schema.`;
@@ -524,7 +525,11 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
             "sections": ["Navigation", "Hero", "Features"],
             "schema": ["<main>", "<article>", "<custom-header>", "role='navigation'"]
         },
-        "visualSummary": "A clean, modern technical dashboard using high-contrast typography and subtle glassmorphism."
+        "visualSummary": "A clean, modern technical dashboard using high-contrast typography and subtle glassmorphism.",
+        "issues": {
+            "runtime": ["Missing alt attributes on hero images", "Contrast ratio fails on secondary buttons"],
+            "visual": ["Inconsistent padding on mobile view", "Text-overflow not handled in cards"]
+        }
     }`;
 
     try {
@@ -557,7 +562,15 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
                             },
                             required: ['layout', 'components', 'sections', 'schema']
                         },
-                        visualSummary: { type: Type.STRING }
+                        visualSummary: { type: Type.STRING },
+                        issues: {
+                            type: Type.OBJECT,
+                            properties: {
+                                runtime: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Runtime, accessibility, or best practice issues" },
+                                visual: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Visual, layout, or contrast issues" }
+                            },
+                            required: ['runtime', 'visual']
+                        }
                     },
                     required: ['designTokens', 'architecture', 'visualSummary']
                 }

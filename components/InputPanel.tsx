@@ -292,7 +292,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         <button
                             onClick={onGenerate}
                             disabled={isGenerateDisabled}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-brand-bg bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-brand-bg bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                         >
                             {getButtonIcon()}
                             {getButtonText()}
