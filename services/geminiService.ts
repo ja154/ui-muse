@@ -217,6 +217,7 @@ CRITICAL UI/UX PRO MAX RULES:
 8. ACCESSIBILITY: Ensure proper focus states for ALL interactive elements (e.g., focus:ring-2 focus:ring-primary).
 9. NO GENERIC GRADIENTS: Avoid simple purple/blue gradients. Use layered radial backgrounds or sophisticated grain textures for depth.
 10. SCROLLABILITY: ALWAYS ensure page is vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
+11. SELECTED / HOVER EFFECTS: For any selected or interactive element, add a subtle hover effect (such as a slight scale transform e.g., hover:scale-[1.02], or a shadow change) to indicate interactivity.
 `;
 
 const STYLE_RECIPES = {

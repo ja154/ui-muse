@@ -115,7 +115,7 @@ const AnalysisReport: React.FC<AnalysisReportProps> = ({ result }) => {
                     <div className="bg-brand-surface/70 backdrop-blur-md rounded-xl p-6 border border-brand-border/50">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-red-500/10 rounded-lg">
-                                <SearchIcon className="w-5 h-5 text-red-500" />
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
                             </div>
                             <h3 className="font-bold text-brand-text">Detected Issues</h3>
                         </div>

@@ -108,7 +108,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             
             <div className="relative flex flex-col h-full max-h-[calc(100vh-140px)]">
                 <div className="relative shrink-0 flex items-center">
-                    <div className="flex border-b border-brand-border/50 overflow-x-auto no-scrollbar snap-x scroll-smooth flex-1">
+                    <div className="flex border-b border-brand-border/50 overflow-x-auto snap-x scroll-smooth flex-1 pb-1">
                         <div className="flex-none w-4" aria-hidden="true" />
                         {mainTabs.map(tab => (
                             <button
@@ -119,8 +119,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                 {tab.label}
                             </button>
                         ))}
-                        {/* Small spacer for the right edge */}
-                        <div className="flex-none w-4" aria-hidden="true" />
+                        {/* Spacer for the right edge */}
+                        <div className="flex-none w-8" aria-hidden="true" />
                     </div>
                     {/* Simplified fade indicator without the overlapping icon */}
                     {/* The fade gradient was covering the last tab on narrow windows, so it's removed */}
