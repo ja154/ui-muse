@@ -1,71 +1,100 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Template, VisualStyle } from '../types.ts';
 import { LoadingSpinner, GenerateIcon, CodeBracketIcon, SparkleIcon } from './icons.tsx';
 
 interface TemplatesPanelProps {
     templates: Template[];
+    atomicComponents: Template[];
     generatedTemplates: Record<string, string>;
     loadingStates: Record<string, boolean>;
     onGenerate: (templateId: string, prompt: string, style: VisualStyle) => void;
     onUse: (html: string, target: 'base' | 'style') => void;
 }
 
-const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, generatedTemplates, loadingStates, onGenerate, onUse }) => {
-    return (
-        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 p-6 relative group h-full">
-            <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
-            <div className="relative">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-brand-text font-mono tracking-tighter uppercase">HTML Templates</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {templates.map((template) => {
-                        const isLoading = loadingStates[template.id];
-                        const generatedHtml = generatedTemplates[template.id];
+const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ templates, atomicComponents, generatedTemplates, loadingStates, onGenerate, onUse }) => {
+    const [activeTab, setActiveTab] = useState<'templates' | 'atomic'>('templates');
 
-                        return (
-                            <div key={template.id} className="p-4 bg-brand-bg rounded-xl border border-brand-border flex flex-col justify-between transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-brand-primary/10 hover:border-brand-primary/50 hover:bg-brand-primary/5">
-                                <div>
-                                    <h3 className="font-semibold text-brand-text">{template.name}</h3>
-                                    <p className="text-sm text-brand-muted mb-4">Style: {template.style}</p>
-                                </div>
-                                <div className="flex items-center gap-2 mt-auto">
-                                    {isLoading ? (
-                                        <button disabled className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-white/20 rounded-md disabled:cursor-wait">
-                                            <LoadingSpinner className="w-4 h-4" />
-                                            Generating...
-                                        </button>
-                                    ) : generatedHtml ? (
-                                        <>
-                                            <button 
-                                                onClick={() => onUse(generatedHtml, 'base')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
-                                                title="Use this as your base HTML"
-                                                >
-                                                 <CodeBracketIcon className="w-5 h-5"/> Use as Base
-                                            </button>
-                                            <button
-                                                 onClick={() => onUse(generatedHtml, 'style')}
-                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
-                                                title="Use this to style your HTML"
-                                            >
-                                                <SparkleIcon className="w-5 h-5" /> Use for Style
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button 
-                                            onClick={() => onGenerate(template.id, template.prompt, template.style)}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-bold text-slate-900 bg-brand-primary rounded-xl shadow-md hover:bg-brand-secondary hover:text-white transition-colors duration-200"
+    const renderItems = (items: Template[]) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {items.map((template) => {
+                const isLoading = loadingStates[template.id];
+                const generatedHtml = generatedTemplates[template.id];
+
+                return (
+                    <div key={template.id} className="p-4 bg-brand-bg rounded-xl border border-brand-border flex flex-col justify-between transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-brand-primary/10 hover:border-brand-primary/50 hover:bg-brand-primary/5">
+                        <div>
+                            <h3 className="font-semibold text-brand-text">{template.name}</h3>
+                            <p className="text-sm text-brand-muted mb-4">Style: {template.style}</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-auto">
+                            {isLoading ? (
+                                <button disabled className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold text-white bg-white/20 rounded-md disabled:cursor-wait">
+                                    <LoadingSpinner className="w-4 h-4" />
+                                    Generating...
+                                </button>
+                            ) : generatedHtml ? (
+                                <>
+                                    <button 
+                                        onClick={() => onUse(generatedHtml, 'base')}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
+                                        title="Use this as your base HTML"
                                         >
-                                            <GenerateIcon className="w-5 h-5" /> Generate
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                                         <CodeBracketIcon className="w-5 h-5"/> Use as Base
+                                    </button>
+                                    <button
+                                         onClick={() => onUse(generatedHtml, 'style')}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-text rounded-lg transition-colors border border-brand-primary/20"
+                                        title="Use this to style your HTML"
+                                    >
+                                        <SparkleIcon className="w-5 h-5" /> Use for Style
+                                    </button>
+                                </>
+                            ) : (
+                                <button 
+                                    onClick={() => onGenerate(template.id, template.prompt, template.style)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-sm font-bold text-slate-900 bg-brand-primary rounded-xl shadow-md hover:bg-brand-secondary hover:text-white transition-colors duration-200"
+                                >
+                                    <GenerateIcon className="w-5 h-5" /> Generate
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    return (
+        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl shadow-black/20 p-6 relative group h-full flex flex-col">
+            <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/50 to-brand-secondary/50 rounded-xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10"></div>
+            
+            <div className="flex space-x-2 border-b border-brand-border/50 pb-2 mb-2">
+                <button
+                    onClick={() => setActiveTab('templates')}
+                    className={`px-4 py-2 font-bold text-sm rounded-lg transition-colors ${
+                        activeTab === 'templates' 
+                        ? 'bg-brand-primary/20 text-brand-primary' 
+                        : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'
+                    }`}
+                >
+                    Full Templates
+                </button>
+                <button
+                    onClick={() => setActiveTab('atomic')}
+                    className={`px-4 py-2 font-bold text-sm rounded-lg transition-colors ${
+                        activeTab === 'atomic' 
+                        ? 'bg-brand-primary/20 text-brand-primary' 
+                        : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'
+                    }`}
+                >
+                    Atomic Components
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 h-full min-h-[300px]">
+                {activeTab === 'templates' && renderItems(templates)}
+                {activeTab === 'atomic' && renderItems(atomicComponents)}
             </div>
         </div>
     );

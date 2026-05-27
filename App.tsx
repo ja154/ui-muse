@@ -32,6 +32,15 @@ const TEMPLATES: Template[] = [
     { id: 'user-profile', name: 'Playful User Profile', prompt: 'A fun user profile card with a circular avatar, progress bars for stats, and bright, cheerful colors.', style: VisualStyle.Playful },
 ];
 
+const ATOMIC_COMPONENTS: Template[] = [
+    { id: 'navbar-simple', name: 'Navigation Bar', prompt: 'A modern, responsive navigation bar with a logo on the left, links in the center, and login/signup buttons on the right. Styled beautifully.', style: VisualStyle.Minimalist },
+    { id: 'footer-clean', name: 'Footer', prompt: 'A comprehensive footer with multiple column links (About, Services, Legal), social media icons, and a newsletter signup form.', style: VisualStyle.Corporate },
+    { id: 'hero-section', name: 'Hero Section', prompt: 'A bold hero section with a large headline, a descriptive subheadline, and a primary call to action button, accompanied by a visual placeholder.', style: VisualStyle.Atmospheric },
+    { id: 'feature-grid', name: 'Feature Grid', prompt: 'A grid layout containing exactly three feature cards. Each card has an icon, a title, and a short description text. Perfect padding and spacing.', style: VisualStyle.Bento },
+    { id: 'stats-bar', name: 'Stats Section', prompt: 'A horizontal bar displaying 4 key statistics/metrics in bold numbers with soft labels underneath.', style: VisualStyle.Technical },
+    { id: 'testimonials', name: 'Testimonial Card', prompt: 'A quote card with a short paragraph of text, user avatar, name, and role. Subtle styling with a quotation mark icon.', style: VisualStyle.Minimalist }
+];
+
 
 const App: React.FC = () => {
     // Input state
@@ -396,6 +405,7 @@ const App: React.FC = () => {
                                 <div className="xl:col-span-1">
                                     <InspirationPanel
                                         templates={TEMPLATES}
+                                        atomicComponents={ATOMIC_COMPONENTS}
                                         generatedTemplates={generatedTemplates}
                                         loadingStates={templateLoading}
                                         onGenerate={handleGenerateTemplate}
