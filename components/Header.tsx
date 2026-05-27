@@ -5,9 +5,8 @@ import ThemeToggle from './ThemeToggle.tsx';
 
 const Header: React.FC = () => {
     return (
-        <header className="p-4 sm:px-6 sm:py-4 border-b border-brand-border/50 bg-brand-surface/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-4">
+        <header className="px-4 sm:px-6 py-4 border-b border-brand-border/80 bg-brand-surface/80 backdrop-blur-xl text-brand-text shrink-0 z-30 flex items-center justify-between">
+            <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-brand-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
                         <SparkleIcon className="w-6 h-6 text-brand-bg" />
                     </div>
@@ -22,7 +21,6 @@ const Header: React.FC = () => {
                         AI-Powered UI Builder
                     </div>
                 </div>
-            </div>
         </header>
     );
 };

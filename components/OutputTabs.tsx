@@ -190,9 +190,9 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
 
     return (
         <>
-            <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group">
-                <div className="relative">
-                    <div className="flex justify-between items-center p-4 border-b border-brand-border/50">
+            <div className="flex flex-col h-full bg-brand-bg relative group">
+                <div className="relative h-full flex flex-col">
+                    <div className="flex justify-between items-center p-4 border-b border-brand-border/50 bg-brand-bg/90 backdrop-blur-sm sticky top-0 z-20">
                         <div className="flex items-center gap-1">
                             {tabsConfig.map(tab => (
                                 <button

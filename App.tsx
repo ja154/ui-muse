@@ -326,14 +326,14 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in min-h-screen flex flex-col bg-brand-bg">
             <Header />
-            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {inputMode === 'design' ? (
-                        <div className="lg:col-span-5 animate-slide-up flex flex-col gap-8">
-                            <WireframeEditor onGenerate={handleGenerateFromWireframe} isGenerating={isLoading} setInputMode={setInputMode} />
-                            {(htmlOutput || isLoading) && (
+            <main className="flex-1 flex flex-col lg:flex-row w-full max-w-[100vw]">
+                {inputMode === 'design' ? (
+                    <div className="flex-1 animate-slide-up flex flex-col">
+                        <WireframeEditor onGenerate={handleGenerateFromWireframe} isGenerating={isLoading} setInputMode={setInputMode} />
+                        {(htmlOutput || isLoading) && (
+                            <div className="flex-1 bg-brand-bg">
                                 <OutputTabs
                                     previewImage={previewImage}
                                     generatedPrompt={generatedPrompt}
@@ -345,74 +345,76 @@ const App: React.FC = () => {
                                     errors={error}
                                     inputMode={inputMode}
                                 />
-                            )}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        <div className="w-full lg:w-[400px] shrink-0 border-r border-brand-border/80 flex flex-col animate-slide-up lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto custom-scrollbar bg-brand-surface/30 z-10">
+                            <InputPanel
+                                inputMode={inputMode}
+                                setInputMode={setInputMode}
+                                userInput={userInput}
+                                setUserInput={setUserInput}
+                                urlInput={urlInput}
+                                setUrlInput={setUrlInput}
+                                screenshots={screenshots}
+                                setScreenshots={setScreenshots}
+                                pastedContent={pastedContent}
+                                setPastedContent={setPastedContent}
+                                htmlInput={htmlInput}
+                                setHtmlInput={setHtmlInput}
+                                cloneHtmlInput={cloneHtmlInput}
+                                setCloneHtmlInput={setCloneHtmlInput}
+                                inspectHtmlInput={inspectHtmlInput}
+                                setInspectHtmlInput={setInspectHtmlInput}
+                                selectedStyle={selectedStyle}
+                                setSelectedStyle={setSelectedStyle}
+                                visualStyles={VISUAL_STYLES}
+                                onGenerate={handleGenerate}
+                                isLoading={isLoading}
+                                currentHtml={htmlOutput}
+                            />
                         </div>
-                    ) : (
-                        <>
-                            <div className="lg:col-span-2 flex flex-col gap-6 animate-slide-up lg:sticky lg:top-8 h-fit">
-                                <InputPanel
-                                    inputMode={inputMode}
-                                    setInputMode={setInputMode}
-                                    userInput={userInput}
-                                    setUserInput={setUserInput}
-                                    urlInput={urlInput}
-                                    setUrlInput={setUrlInput}
-                                    screenshots={screenshots}
-                                    setScreenshots={setScreenshots}
-                                    pastedContent={pastedContent}
-                                    setPastedContent={setPastedContent}
-                                    htmlInput={htmlInput}
-                                    setHtmlInput={setHtmlInput}
-                                    cloneHtmlInput={cloneHtmlInput}
-                                    setCloneHtmlInput={setCloneHtmlInput}
-                                    inspectHtmlInput={inspectHtmlInput}
-                                    setInspectHtmlInput={setInspectHtmlInput}
-                                    selectedStyle={selectedStyle}
-                                    setSelectedStyle={setSelectedStyle}
-                                    visualStyles={VISUAL_STYLES}
-                                    onGenerate={handleGenerate}
+
+                        <div className="flex-1 flex flex-col min-w-0">
+                            <div className="flex-1 p-4 sm:p-0 lg:p-0 animate-slide-up bg-brand-bg flex flex-col">
+                                <OutputTabs
+                                    previewImage={previewImage}
+                                    generatedPrompt={generatedPrompt}
+                                    htmlOutput={htmlOutput}
+                                    cssOutput={cssOutput}
+                                    analysisResult={analysisResult}
+                                    groundingSources={groundingSources}
                                     isLoading={isLoading}
-                                    currentHtml={htmlOutput}
+                                    errors={error}
+                                    inputMode={inputMode}
                                 />
                             </div>
 
-                            <div className="lg:col-span-3 flex flex-col gap-8 animate-slide-up">
-                                <OutputTabs
-                                    previewImage={previewImage}
-                                    generatedPrompt={generatedPrompt}
-                                    htmlOutput={htmlOutput}
-                                    cssOutput={cssOutput}
-                                    analysisResult={analysisResult}
-                                    groundingSources={groundingSources}
-                                    isLoading={isLoading}
-                                    errors={error}
-                                    inputMode={inputMode}
-                                />
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 border-t border-brand-border/80 p-4 sm:p-6 lg:p-8 bg-brand-bg animate-slide-up">
+                                <div className="xl:col-span-1">
+                                    <InspirationPanel
+                                        templates={TEMPLATES}
+                                        generatedTemplates={generatedTemplates}
+                                        loadingStates={templateLoading}
+                                        onGenerate={handleGenerateTemplate}
+                                        onUse={handleUseTemplate}
+                                    />
+                                </div>
+                                <div className="xl:col-span-1">
+                                    {history.length > 0 && (
+                                        <HistoryPanel 
+                                            history={history} 
+                                            clearHistory={() => setHistory([])} 
+                                            loadHistoryItem={loadFromHistory} 
+                                        />
+                                    )}
+                                </div>
                             </div>
-                        </>
-                    )}
-                </div>
-                
-                <div className="mt-12 grid grid-cols-1 lg:grid-cols-5 gap-8 animate-slide-up">
-                     <div className="lg:col-span-3">
-                        <InspirationPanel
-                           templates={TEMPLATES}
-                           generatedTemplates={generatedTemplates}
-                           loadingStates={templateLoading}
-                           onGenerate={handleGenerateTemplate}
-                           onUse={handleUseTemplate}
-                        />
-                     </div>
-                     <div className="lg:col-span-2">
-                        {history.length > 0 && (
-                            <HistoryPanel 
-                              history={history} 
-                              clearHistory={() => setHistory([])} 
-                              loadHistoryItem={loadFromHistory} 
-                            />
-                        )}
-                     </div>
-                </div>
+                        </div>
+                    </>
+                )}
             </main>
         </div>
     );

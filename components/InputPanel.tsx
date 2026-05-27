@@ -103,10 +103,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     }
 
     return (
-        <div className="bg-brand-surface/70 backdrop-blur-md border border-brand-border/50 rounded-xl shadow-2xl relative group overflow-hidden">
-            <div className="absolute -inset-px bg-gradient-to-r from-brand-primary/30 to-brand-secondary/30 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
-            
-            <div className="relative flex flex-col h-full max-h-[calc(100vh-140px)]">
+        <div className="flex flex-col h-full w-full">
+            <div className="relative flex flex-col h-full">
                 <div className="relative shrink-0 flex items-center">
                     <div className="flex border-b border-brand-border/50 overflow-x-auto snap-x scroll-smooth flex-1 pb-1">
                         <div className="flex-none w-4" aria-hidden="true" />
@@ -288,7 +286,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                 </div>
 
                 {inputMode !== 'design' && (
-                    <div className="p-6 border-t border-brand-border/50 shrink-0">
+                    <div className="p-6 shrink-0 mt-auto border-t border-brand-border/50">
                         <button
                             onClick={onGenerate}
                             disabled={isGenerateDisabled}
