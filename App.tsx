@@ -207,15 +207,15 @@ const App: React.FC = () => {
                 }, ...prev.slice(0, 19)]);
 
             } else if (inputMode === 'modify') {
-                const { html, css } = await modifyHtml(htmlInput, cloneHtmlInput);
+                const { html, css } = await modifyHtml(htmlInput, userInput, selectedStyle);
                 setHtmlOutput(html);
                 setCssOutput(css);
                 setHistory(prev => [{
                     id: Date.now().toString(),
-                    input: 'HTML Remix',
+                    input: userInput || `Remixed to ${selectedStyle}`,
                     inputMode,
                     htmlInput,
-                    cloneHtmlInput,
+                    style: selectedStyle,
                     htmlOutput: html,
                     cssOutput: css,
                 }, ...prev.slice(0, 19)]);
@@ -318,7 +318,8 @@ const App: React.FC = () => {
             setPreviewImage(item.previewImage || null);
         } else if (item.inputMode === 'modify') {
             setHtmlInput(item.htmlInput || '');
-            setCloneHtmlInput(item.cloneHtmlInput || '');
+            setUserInput(item.input || '');
+            setSelectedStyle(item.style || VISUAL_STYLES[0]);
         } else if (item.inputMode === 'clone') {
             setUrlInput(item.urlInput || '');
             setScreenshots(item.screenshots || []);

@@ -348,14 +348,24 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
     }
 };
 
-export const modifyHtml = async (originalHtml: string, styleHtml: string): Promise<{ html: string; css: string }> => {
+export const modifyHtml = async (originalHtml: string, modifications: string, style: VisualStyle): Promise<{ html: string; css: string }> => {
     const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `
-Re-style the following "Original HTML" using the design language and Tailwind CSS classes from the "Style HTML".
-Preserve original content and improve accessibility.
-ORIGINAL: ${originalHtml}
-STYLE: ${styleHtml}
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code. The 'css' field should contain any custom CSS needed.
+You are tasked with redesigning and remixing the following "Original HTML" into a entirely new visual language.
+Base your redesign on the target visual style: "${style}".
+Also apply these specific user modification instructions: "${modifications || 'Completely re-imagine the design while keeping the core content/functionality.'}"
+
+Requirements:
+- Preserve the core content and semantic structure (links, text, images, forms).
+- Do NOT just tweak colors. We want a completely new layout pattern, typography scale, and aesthetic feel mapping to the new style.
+- Apply completely new Tailwind CSS classes.
+- Ensure responsiveness (mobile-first) and accessibility improve.
+- Replace any generic visual placeholders with better appropriate stylized blocks.
+
+ORIGINAL HTML:
+${originalHtml}
+
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the fully restyled raw HTML code. The 'css' field should contain any custom CSS needed.
 `;
 
     try {

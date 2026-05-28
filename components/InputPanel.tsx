@@ -44,7 +44,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         (inputMode === 'blueprint' && !userInput.trim()) ||
         (inputMode === 'design-system' && !userInput.trim()) ||
         (inputMode === 'inspect' && !inspectHtmlInput.trim()) ||
-        (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
+        (inputMode === 'modify' && !htmlInput.trim()) ||
         (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
     );
 
@@ -198,28 +198,42 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                                  <textarea
                                     value={htmlInput}
                                     onChange={(e) => setHtmlInput(e.target.value)}
-                                    placeholder="Paste HTML to modify..."
+                                    placeholder="Paste HTML to redesign..."
                                     className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
                                 />
                             </div>
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <label className="block text-sm font-bold text-brand-text">2. Paste Style to Clone</label>
-                                    {props.currentHtml && (
-                                        <button 
-                                            onClick={() => setCloneHtmlInput(props.currentHtml || '')}
-                                            className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-1 rounded hover:bg-brand-primary/20 transition-colors uppercase font-bold"
-                                        >
-                                            Use Current Output
-                                        </button>
-                                    )}
-                                </div>
+                                <label className="block text-sm font-bold text-brand-text">2. Modification Instructions (Optional)</label>
                                 <textarea
-                                    value={cloneHtmlInput}
-                                    onChange={(e) => setCloneHtmlInput(e.target.value)}
-                                    placeholder="Paste HTML with desired styling..."
-                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
+                                    value={userInput}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder="e.g. Make it look like a sci-fi space dashboard with neon highlights..."
+                                    className="w-full h-20 p-4 bg-brand-bg border border-brand-border rounded-xl text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
+                                    disabled={isLoading}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                            if (!isGenerateDisabled) onGenerate();
+                                        }
+                                    }}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-brand-text">3. Choose a target style</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {visualStyles.map((style) => (
+                                        <button
+                                            key={style}
+                                            onClick={() => setSelectedStyle(style)}
+                                            disabled={isLoading}
+                                            className={`px-3 py-2.5 min-h-[40px] text-[11px] font-bold rounded-lg transition-all duration-300 transform
+                                                ${selectedStyle === style 
+                                                    ? 'bg-brand-primary text-brand-bg shadow-lg shadow-brand-primary/30 scale-[1.02]' 
+                                                    : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.02]'}`}
+                                        >
+                                            {style}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </>
                     )}
