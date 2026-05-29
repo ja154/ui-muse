@@ -360,6 +360,7 @@ CRITICAL: Generate a COMPLETE webpage with a <header>, <main> body with substant
             config: { 
                 systemInstruction,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                maxOutputTokens: MAX_TOKENS,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -438,6 +439,7 @@ The 'css' field should contain any custom CSS needed.
             config: { 
                 systemInstruction,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                maxOutputTokens: MAX_TOKENS,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -501,6 +503,7 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
             config: { 
                 systemInstruction,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                maxOutputTokens: MAX_TOKENS,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -560,6 +563,7 @@ ${UI_UX_PRO_MAX_RULES}`;
             config: {
                 systemInstruction,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                maxOutputTokens: MAX_TOKENS,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
