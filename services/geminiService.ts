@@ -251,6 +251,7 @@ CRITICAL UI/UX PRO MAX RULES:
 9. NO GENERIC GRADIENTS: Avoid simple purple/blue gradients. Use layered radial backgrounds or sophisticated grain textures for depth.
 10. SCROLLABILITY: ALWAYS ensure page is vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
 11. SELECTED / HOVER EFFECTS: For any selected or interactive element, add a subtle hover effect (such as a slight scale transform e.g., hover:scale-[1.02], or a shadow change) to indicate interactivity.
+12. EXHAUSTIVE CONTENT: Never summarize HTML. Always write out all items in a grid or list (do NOT use "<!-- more items -->"). Always include the complete <main> section and the COMPLETE <footer>.
 `;
 
 const STYLE_RECIPES = {
@@ -349,7 +350,8 @@ export const generateHtmlFromPrompt = async (prompt: string, style?: VisualStyle
     ${UI_UX_PRO_MAX_RULES}`;
     const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).`;
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).
+CRITICAL: Generate a COMPLETE webpage with a <header>, <main> body with substantive sections, and a full <footer>. NEVER leave out the footer or use placeholder comments like "<!-- content -->".`;
 
     try {
         const response = await ai.models.generateContent({
@@ -424,7 +426,9 @@ Requirements:
 ORIGINAL HTML:
 ${originalHtml}
 
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the FULL, COMPLETE, AND FULLY RESTYLED raw HTML webpage code. DO NOT return partial snippets or placeholder comments. Include the entire page structure, components, and all its content. The 'css' field should contain any custom CSS needed.
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the FULL, COMPLETE, AND FULLY RESTYLED raw HTML webpage code. 
+CRITICAL: DO NOT return partial snippets, DO NOT summarize or shorten the page, and DO NOT use placeholder comments like \`<!-- rest of items -->\`. You MUST write out the ENTIRE page structure, including ALL middle sections, the FULL <main> body, and the COMPLETE <footer>.
+The 'css' field should contain any custom CSS needed.
 `;
 
     try {
@@ -532,6 +536,7 @@ VISUAL REASONING PROTOCOL:
 CRITICAL GUIDELINES:
 1. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
 2. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
+3. EXHAUSTIVE GENERATION: Even if the wireframe skips details, you must generate a full, complete webpage containing a sensible <header>, comprehensive <main> content sections, and a complete <footer>. Do NOT truncate or use comment placeholders.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
@@ -716,12 +721,13 @@ RECONSTRUCTION PROTOCOL:
 2. TAILWIND ADAPTATION: Map the layout and typography to Tailwind CSS classes.
 3. CONTENT FIDELITY: Preserve all text content exactly as it appears in the source.
 
-MANDATORY RULES:
+CRITICAL MANDATORY RULES (DO NOT IGNORE):
 1. Return ONLY valid JSON: { "html": "...", "css": "..." }.
 2. Use semantic HTML5 elements.
 3. The result MUST be vertically scrollable.
-4. Ensure the footer is present.
-5. The user-provided HTML and text are the primary sources of truth.
+4. DO NOT SUMMARIZE OR SHORTEN THE HTML. You MUST generate the ENTIRE webpage, including ALL middle sections, ALL products/features/testimonials from the source, and a COMPLETE <footer>.
+5. Never use placeholders like "<!-- rest of the page -->" or "<!-- additional items here -->". Write out EVERY single item.
+6. The user-provided HTML and text are the primary sources of truth. If it's in the source HTML, it MUST be in your generated HTML.
 `;
 
     // ── 2. Build the prompt ───────────────────────────────────────────────────
