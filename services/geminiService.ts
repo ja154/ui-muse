@@ -337,10 +337,36 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
             }
         });
         
-        const jsonResponse = JSON.parse(response.text || '{}');
+        const rawText = response.text ?? '';
+        let parsed = extractJson(rawText) || { html: '', css: '' };
+
+        if (parsed.html && !isHtmlComplete(parsed.html)) {
+            console.warn('[generateHtml] HTML truncated — requesting continuation pass...');
+            try {
+                const continuation = await requestContinuation(parsed.html, userPrompt);
+                const overlapCheck = parsed.html.slice(-200).trim();
+                const contTrimmed  = continuation.trimStart();
+                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
+                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
+                } else {
+                    parsed.html += contTrimmed;
+                }
+
+                if (!isHtmlComplete(parsed.html)) {
+                    parsed.html = parsed.html.trimEnd();
+                    if (!parsed.html.endsWith('</footer>') && parsed.html.includes('<footer>')) parsed.html += '\n</footer>';
+                    if (!parsed.html.includes('</body>') && parsed.html.includes('<body'))   parsed.html += '\n</body>';
+                    if (!parsed.html.includes('</html>') && parsed.html.includes('<html'))   parsed.html += '\n</html>';
+                }
+            } catch (contErr) {
+                console.error('[generateHtml] Continuation pass failed:', contErr);
+                parsed.html = parsed.html.trimEnd();
+            }
+        }
+
         return {
-            html: cleanHtml(jsonResponse.html || ''),
-            css: jsonResponse.css || ''
+            html: cleanHtml(parsed.html || ''),
+            css: parsed.css || ''
         };
     } catch (error) {
         console.error("Error generating HTML:", error);
@@ -365,7 +391,7 @@ Requirements:
 ORIGINAL HTML:
 ${originalHtml}
 
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the fully restyled raw HTML code. The 'css' field should contain any custom CSS needed.
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the FULL, COMPLETE, AND FULLY RESTYLED raw HTML webpage code. DO NOT return partial snippets or placeholder comments. Include the entire page structure, components, and all its content. The 'css' field should contain any custom CSS needed.
 `;
 
     try {
@@ -386,10 +412,38 @@ Return a JSON object with 'html' and 'css' fields. The 'html' field should conta
                 }
             }
         });
-        const jsonResponse = JSON.parse(response.text || '{}');
+        
+        const rawText = response.text ?? '';
+        let parsed = extractJson(rawText) || { html: '', css: '' };
+
+        // Continuation pass if HTML was truncated
+        if (parsed.html && !isHtmlComplete(parsed.html)) {
+            console.warn('[modifyHtml] HTML truncated — requesting continuation pass...');
+            try {
+                const continuation = await requestContinuation(parsed.html, userPrompt);
+                const overlapCheck = parsed.html.slice(-200).trim();
+                const contTrimmed  = continuation.trimStart();
+                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
+                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
+                } else {
+                    parsed.html += contTrimmed;
+                }
+
+                if (!isHtmlComplete(parsed.html)) {
+                    parsed.html = parsed.html.trimEnd();
+                    if (!parsed.html.endsWith('</footer>') && parsed.html.includes('<footer>')) parsed.html += '\n</footer>';
+                    if (!parsed.html.includes('</body>') && parsed.html.includes('<body'))   parsed.html += '\n</body>';
+                    if (!parsed.html.includes('</html>') && parsed.html.includes('<html'))   parsed.html += '\n</html>';
+                }
+            } catch (contErr) {
+                console.error('[modifyHtml] Continuation pass failed:', contErr);
+                parsed.html = parsed.html.trimEnd();
+            }
+        }
+
         return {
-            html: cleanHtml(jsonResponse.html || ''),
-            css: jsonResponse.css || ''
+            html: cleanHtml(parsed.html || ''),
+            css: parsed.css || ''
         };
     } catch (error) {
         console.error("Error modifying HTML:", error);
