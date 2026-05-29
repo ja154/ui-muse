@@ -66,20 +66,53 @@ function extractJson(raw: string): { html: string; css: string } | null {
         if (!attempt) continue;
         try {
             const parsed = JSON.parse(attempt);
-            if (typeof parsed.html === 'string') return parsed;
+            if (typeof parsed.html === 'string') return {
+                html: parsed.html || '',
+                css: parsed.css || ''
+            };
         } catch {
             // try next
         }
     }
 
-    // Last resort: regex-extract html and css fields individually
-    const htmlMatch = raw.match(/"html"\s*:\s*"([\s\S]*?)(?<!\\)",\s*"css"/);
-    const cssMatch  = raw.match(/"css"\s*:\s*"([\s\S]*?)(?<!\\)"[\s\n]*\}/);
-    if (htmlMatch) {
-        return {
-            html: htmlMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'),
-            css:  cssMatch  ? cssMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\') : '',
-        };
+    // Last resort: robust manual extraction for truncated JSON
+    const extractString = (key: string): string => {
+        const keyIndex = raw.indexOf(`"${key}"`);
+        if (keyIndex === -1) return '';
+        
+        const colonIndex = raw.indexOf(':', keyIndex + key.length + 2);
+        if (colonIndex === -1) return '';
+        const startQuoteIndex = raw.indexOf('"', colonIndex + 1);
+        if (startQuoteIndex === -1) return '';
+        
+        let valStart = startQuoteIndex + 1;
+        let valEnd = -1;
+        let isEscaped = false;
+        
+        for (let i = valStart; i < raw.length; i++) {
+            if (isEscaped) {
+                isEscaped = false;
+            } else if (raw[i] === '\\') {
+                isEscaped = true;
+            } else if (raw[i] === '"') {
+                valEnd = i;
+                break;
+            }
+        }
+        
+        if (valEnd === -1) {
+            valEnd = raw.length;
+        }
+        
+        let extracted = raw.slice(valStart, valEnd);
+        return extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+    };
+
+    const html = extractString('html');
+    const css = extractString('css');
+
+    if (html || css) {
+        return { html, css };
     }
 
     return null;
