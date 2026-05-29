@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Settings, Zap, ZapOff, Sliders } from 'lucide-react';
 import { useAnimation } from '../AnimationContext.tsx';
 
 const AnimationSettings: React.FC = () => {
@@ -8,69 +7,148 @@ const AnimationSettings: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg hover:bg-brand-border/50 transition-colors text-brand-muted hover:text-brand-primary flex items-center gap-2"
         title="Animation Settings"
+        style={{
+          fontFamily: 'Share Tech Mono, monospace',
+          fontSize: '10px',
+          letterSpacing: '0.12em',
+          padding: '5px 10px',
+          background: isOpen ? 'rgba(0,255,136,0.08)' : 'transparent',
+          border: '1px solid var(--brand-border)',
+          color: isOpen ? 'var(--brand-primary)' : 'var(--brand-text-dim)',
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
       >
-        <Settings className="w-5 h-5" />
-        <span className="hidden sm:inline text-xs font-medium uppercase tracking-wider">Animations</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        <span className="hidden sm:inline">ANIM</span>
       </button>
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-30" 
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 30 }}
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-64 bg-brand-surface border border-brand-border rounded-xl shadow-2xl p-4 z-40 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-brand-primary" />
-                Animation Settings
-              </h3>
-              <button 
+          <div style={{
+            position: 'absolute',
+            right: 0,
+            top: '100%',
+            marginTop: 4,
+            width: 240,
+            background: 'var(--brand-surface)',
+            border: '1px solid var(--brand-border)',
+            padding: '14px',
+            zIndex: 40,
+            boxShadow: '0 0 30px rgba(0,0,0,0.8)',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14,
+              paddingBottom: 10,
+              borderBottom: '1px solid var(--brand-border)',
+            }}>
+              <span style={{
+                fontFamily: 'Share Tech Mono, monospace',
+                fontSize: '10px',
+                color: 'var(--brand-primary)',
+                letterSpacing: '0.2em',
+              }}>
+                ◈ ANIM_SETTINGS
+              </span>
+              <button
                 onClick={() => updateSettings({ enabled: !settings.enabled })}
-                className={`p-1.5 rounded-md transition-all ${
-                  settings.enabled 
-                    ? 'bg-brand-primary/20 text-brand-primary' 
-                    : 'bg-brand-border text-brand-muted'
-                }`}
+                style={{
+                  fontFamily: 'Share Tech Mono, monospace',
+                  fontSize: '9px',
+                  letterSpacing: '0.1em',
+                  padding: '3px 8px',
+                  background: settings.enabled ? 'rgba(0,255,136,0.12)' : 'rgba(255,45,107,0.12)',
+                  border: settings.enabled
+                    ? '1px solid rgba(0,255,136,0.4)'
+                    : '1px solid rgba(255,45,107,0.4)',
+                  color: settings.enabled ? 'var(--brand-primary)' : 'var(--brand-accent)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
               >
-                {settings.enabled ? <Zap className="w-4 h-4" /> : <ZapOff className="w-4 h-4" />}
+                {settings.enabled ? 'ON' : 'OFF'}
               </button>
             </div>
 
-            <div className={`space-y-4 transition-opacity duration-200 ${settings.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-brand-muted">
-                  <span className="flex items-center gap-1.5">
-                    <Sliders className="w-3 h-3" />
-                    Intensity
-                  </span>
-                  <span className="font-mono text-brand-primary">{Math.round(settings.intensity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={settings.intensity}
-                  onChange={(e) => updateSettings({ intensity: parseFloat(e.target.value) })}
-                  className="w-full h-1.5 bg-brand-border rounded-lg appearance-none cursor-pointer accent-brand-primary"
-                />
-                <div className="flex justify-between text-[10px] text-brand-muted/50 font-mono">
-                  <span>MIN</span>
-                  <span>MAX</span>
-                </div>
+            {/* Intensity */}
+            <div style={{ opacity: settings.enabled ? 1 : 0.3, pointerEvents: settings.enabled ? 'auto' : 'none' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}>
+                <span style={{
+                  fontFamily: 'Share Tech Mono, monospace',
+                  fontSize: '9px',
+                  color: 'var(--brand-text-dim)',
+                  letterSpacing: '0.15em',
+                }}>
+                  INTENSITY
+                </span>
+                <span style={{
+                  fontFamily: 'Share Tech Mono, monospace',
+                  fontSize: '9px',
+                  color: 'var(--brand-primary)',
+                  letterSpacing: '0.1em',
+                }}>
+                  {Math.round(settings.intensity * 100)}%
+                </span>
               </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={settings.intensity}
+                onChange={(e) => updateSettings({ intensity: parseFloat(e.target.value) })}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--brand-primary)',
+                  cursor: 'pointer',
+                }}
+              />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontFamily: 'Share Tech Mono, monospace',
+                fontSize: '8px',
+                color: 'var(--brand-text-dim)',
+                letterSpacing: '0.1em',
+                marginTop: 4,
+              }}>
+                <span>NULL</span>
+                <span>MAX</span>
+              </div>
+            </div>
 
-              <div className="pt-2 border-t border-brand-border/50">
-                <p className="text-[10px] text-brand-muted leading-relaxed">
-                  Adjust the speed and distance of UI transitions. Setting to 0% effectively disables movement while keeping fade effects.
-                </p>
-              </div>
+            <div style={{
+              marginTop: 12,
+              paddingTop: 10,
+              borderTop: '1px solid var(--brand-border)',
+              fontFamily: 'Share Tech Mono, monospace',
+              fontSize: '9px',
+              color: 'var(--brand-text-dim)',
+              lineHeight: 1.6,
+              letterSpacing: '0.05em',
+            }}>
+              // controls transition speed of all UI elements
             </div>
           </div>
         </>
