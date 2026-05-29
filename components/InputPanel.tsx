@@ -1,319 +1,566 @@
 import React, { useRef } from 'react';
 import { VisualStyle, InputMode } from '../types.ts';
 import { GenerateIcon, CodeBracketIcon, LoadingSpinner, GlobeAltIcon, PhotoIcon, XMarkIcon, SearchIcon } from './icons.tsx';
-import { ChevronRight } from 'lucide-react';
 
 interface InputPanelProps {
-    inputMode: InputMode;
-    setInputMode: (mode: InputMode) => void;
-    userInput: string;
-    setUserInput: (value: string) => void;
-    urlInput: string;
-    setUrlInput: (value: string) => void;
-    screenshots: string[];
-    setScreenshots: React.Dispatch<React.SetStateAction<string[]>>;
-    pastedContent: string;
-    setPastedContent: (value: string) => void;
-    htmlInput: string;
-    setHtmlInput: (value: string) => void;
-    cloneHtmlInput: string;
-    setCloneHtmlInput: (value: string) => void;
-    inspectHtmlInput: string;
-    setInspectHtmlInput: (value: string) => void;
-    selectedStyle: VisualStyle;
-    setSelectedStyle: (style: VisualStyle) => void;
-    visualStyles: VisualStyle[];
-    onGenerate: () => void;
-    isLoading: boolean;
-    currentHtml?: string;
+  inputMode: InputMode;
+  setInputMode: (mode: InputMode) => void;
+  userInput: string;
+  setUserInput: (value: string) => void;
+  urlInput: string;
+  setUrlInput: (value: string) => void;
+  screenshots: string[];
+  setScreenshots: React.Dispatch<React.SetStateAction<string[]>>;
+  pastedContent: string;
+  setPastedContent: (value: string) => void;
+  htmlInput: string;
+  setHtmlInput: (value: string) => void;
+  cloneHtmlInput: string;
+  setCloneHtmlInput: (value: string) => void;
+  inspectHtmlInput: string;
+  setInspectHtmlInput: (value: string) => void;
+  selectedStyle: VisualStyle;
+  setSelectedStyle: (style: VisualStyle) => void;
+  visualStyles: VisualStyle[];
+  onGenerate: () => void;
+  isLoading: boolean;
+  currentHtml?: string;
 }
 
+const STYLE_TAG_MAP: Partial<Record<VisualStyle, string>> = {
+  [VisualStyle.Minimalist]: 'MIN',
+  [VisualStyle.Bento]: 'BNT',
+  [VisualStyle.Editorial]: 'EDI',
+  [VisualStyle.Luxury]: 'LUX',
+  [VisualStyle.Technical]: 'TEC',
+  [VisualStyle.Atmospheric]: 'ATM',
+  [VisualStyle.Corporate]: 'CRP',
+  [VisualStyle.Brutalist]: 'BRT',
+  [VisualStyle.Glassmorphism]: 'GLS',
+  [VisualStyle.Cyberpunk]: 'CYB',
+  [VisualStyle.Playful]: 'PLY',
+  [VisualStyle.Vintage]: 'VTG',
+};
+
+// Section label component
+const SectionLabel: React.FC<{ num: string; label: string }> = ({ num, label }) => (
+  <div className="flex items-center gap-3 mb-3">
+    <span style={{
+      fontFamily: 'Share Tech Mono, monospace',
+      fontSize: '9px',
+      color: 'var(--brand-primary)',
+      background: 'rgba(0,255,136,0.1)',
+      border: '1px solid rgba(0,255,136,0.25)',
+      padding: '2px 6px',
+      letterSpacing: '0.1em',
+    }}>
+      {num}
+    </span>
+    <span style={{
+      fontFamily: 'Share Tech Mono, monospace',
+      fontSize: '10px',
+      color: 'var(--brand-text-dim)',
+      letterSpacing: '0.2em',
+      textTransform: 'uppercase',
+    }}>
+      {label}
+    </span>
+    <div style={{ flex: 1, height: '1px', background: 'var(--brand-border)' }} />
+  </div>
+);
+
 const InputPanel: React.FC<InputPanelProps> = (props) => {
-    const {
-        inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
-        screenshots, setScreenshots, pastedContent, setPastedContent,
-        htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput, 
-        inspectHtmlInput, setInspectHtmlInput,
-        selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading
-    } = props;
+  const {
+    inputMode, setInputMode, userInput, setUserInput, urlInput, setUrlInput,
+    screenshots, setScreenshots, pastedContent, setPastedContent,
+    htmlInput, setHtmlInput, cloneHtmlInput, setCloneHtmlInput,
+    inspectHtmlInput, setInspectHtmlInput,
+    selectedStyle, setSelectedStyle, visualStyles, onGenerate, isLoading,
+  } = props;
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const isGenerateDisabled = isLoading || (
-        (inputMode === 'description' && !userInput.trim()) ||
-        (inputMode === 'blueprint' && !userInput.trim()) ||
-        (inputMode === 'design-system' && !userInput.trim()) ||
-        (inputMode === 'inspect' && !inspectHtmlInput.trim()) ||
-        (inputMode === 'modify' && !htmlInput.trim()) ||
-        (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
-    );
+  const isGenerateDisabled = isLoading || (
+    (inputMode === 'description' && !userInput.trim()) ||
+    (inputMode === 'blueprint' && !userInput.trim()) ||
+    (inputMode === 'design-system' && !userInput.trim()) ||
+    (inputMode === 'inspect' && !inspectHtmlInput.trim()) ||
+    (inputMode === 'modify' && (!htmlInput.trim() || !cloneHtmlInput.trim())) ||
+    (inputMode === 'clone' && (!urlInput.trim() && screenshots.length === 0 && !pastedContent.trim()))
+  );
 
-    // Fix: Explicitly typing file as File and casting Array.from result to File[]
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const fileList = e.target.files;
-        if (fileList) {
-            const files = Array.from(fileList) as File[];
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setScreenshots(prev => [...prev, reader.result as string].slice(-4));
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-    };
-
-    const removeScreenshot = (index: number) => {
-        setScreenshots(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const mainTabs = [
-        { mode: 'description', label: 'Describe' },
-        { mode: 'blueprint', label: 'Concept' },
-        { mode: 'design-system', label: 'System' },
-        { mode: 'inspect', label: 'Audit' },
-        { mode: 'design', label: 'Draw' },
-        { mode: 'modify', label: 'Remix' },
-        { mode: 'clone', label: 'Clone' }
-    ];
-    
-    const getButtonText = () => {
-        if (isLoading) {
-            if (inputMode === 'clone') return 'Analyzing & Cloning...';
-            if (inputMode === 'inspect') return 'Deep Scanning HTML...';
-            if (inputMode === 'modify') return 'Remixing...';
-            if (inputMode === 'blueprint') return 'Drafting Blueprint...';
-            if (inputMode === 'design-system') return 'Generating System...';
-            return 'Generating UI...';
-        }
-        if (inputMode === 'modify') return 'Remix HTML';
-        if (inputMode === 'clone') return 'Clone Website';
-        if (inputMode === 'blueprint') return 'Generate Wireframe';
-        if (inputMode === 'design-system') return 'Generate Design System';
-        return 'Build UI';
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (fileList) {
+      const files = Array.from(fileList) as File[];
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setScreenshots(prev => [...prev, reader.result as string].slice(-4));
+        };
+        reader.readAsDataURL(file);
+      });
     }
-    
-    const getButtonIcon = () => {
-        if (isLoading) return <LoadingSpinner className="-ml-1 mr-3 h-5 w-5 text-black" />;
-        if (inputMode === 'inspect') return <SearchIcon className="w-6 h-6 border rounded-full p-1" />;
-        if (inputMode === 'modify') return <CodeBracketIcon className="w-6 h-6" />;
-        if (inputMode === 'clone') return <GlobeAltIcon className="w-6 h-6" />;
-        if (inputMode === 'design-system') return <GenerateIcon className="w-6 h-6" />;
-        return <GenerateIcon className="w-6 h-6" />;
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshots(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const mainTabs: { mode: InputMode; label: string; code: string }[] = [
+    { mode: 'description', label: 'DESCRIBE', code: 'DSC' },
+    { mode: 'blueprint', label: 'CONCEPT', code: 'BLP' },
+    { mode: 'design-system', label: 'SYSTEM', code: 'SYS' },
+    { mode: 'inspect', label: 'AUDIT', code: 'AUD' },
+    { mode: 'design', label: 'DRAW', code: 'DRW' },
+    { mode: 'modify', label: 'REMIX', code: 'RMX' },
+    { mode: 'clone', label: 'CLONE', code: 'CLN' },
+  ];
+
+  const getButtonText = () => {
+    if (isLoading) {
+      if (inputMode === 'clone') return '[ ANALYZING... ]';
+      if (inputMode === 'inspect') return '[ SCANNING... ]';
+      if (inputMode === 'modify') return '[ REMIXING... ]';
+      if (inputMode === 'blueprint') return '[ DRAFTING... ]';
+      return '[ GENERATING... ]';
     }
+    if (inputMode === 'modify') return '[ EXEC: REMIX_HTML ]';
+    if (inputMode === 'clone') return '[ EXEC: CLONE_TARGET ]';
+    if (inputMode === 'blueprint') return '[ EXEC: GEN_WIREFRAME ]';
+    if (inputMode === 'design-system') return '[ EXEC: BUILD_SYSTEM ]';
+    if (inputMode === 'inspect') return '[ EXEC: DEEP_SCAN ]';
+    return '[ EXEC: BUILD_UI ]';
+  };
 
-    return (
-        <div className="flex flex-col h-full w-full">
-            <div className="relative flex flex-col h-full">
-                <div className="relative shrink-0 flex items-center">
-                    <div className="flex border-b border-brand-border/50 overflow-x-auto snap-x scroll-smooth flex-1 pb-1">
-                        <div className="flex-none w-4" aria-hidden="true" />
-                        {mainTabs.map(tab => (
-                            <button
-                                key={tab.mode}
-                                onClick={() => setInputMode(tab.mode as InputMode)}
-                                className={`flex-none px-4 py-4 min-h-[44px] text-[10px] uppercase tracking-wider font-bold transition-colors duration-200 snap-start whitespace-nowrap ${inputMode === tab.mode ? 'text-brand-primary bg-brand-primary/10 border-b-2 border-brand-primary' : 'text-brand-muted hover:bg-brand-primary/5 hover:text-brand-text'}`}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                        {/* Spacer for the right edge */}
-                        <div className="flex-none w-8" aria-hidden="true" />
-                    </div>
-                    {/* Simplified fade indicator without the overlapping icon */}
-                    {/* The fade gradient was covering the last tab on narrow windows, so it's removed */}
-                </div>
+  const labelStyle = {
+    fontFamily: 'Share Tech Mono, monospace',
+    fontSize: '10px',
+    color: 'var(--brand-text-dim)',
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase' as const,
+    marginBottom: '6px',
+    display: 'block',
+  };
 
-                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
-                    {(inputMode === 'description' || inputMode === 'blueprint' || inputMode === 'design-system') && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">
-                                    {inputMode === 'blueprint' ? '1. Describe the structure' : 
-                                     inputMode === 'design-system' ? '1. Describe your brand or product' : 
-                                     '1. Describe your UI idea'}
-                                </label>
-                                <textarea
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder={inputMode === 'blueprint' ? "e.g., A multi-step checkout form with progress indicator" : 
-                                                 inputMode === 'design-system' ? "e.g., A modern fintech app for Gen Z with a focus on trust and speed" :
-                                                 "e.g., A sleek dark-mode fitness dashboard"}
-                                    className="w-full h-32 p-4 bg-brand-bg/60 border border-brand-border/80 rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            {inputMode === 'description' && (
-                                <div>
-                                    <label className="block text-sm font-bold mb-2 text-brand-text">2. Choose a visual style</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {visualStyles.map((style) => (
-                                            <button
-                                                key={style}
-                                                onClick={() => setSelectedStyle(style)}
-                                                disabled={isLoading}
-                                                className={`px-3 py-2.5 min-h-[40px] text-[11px] font-bold rounded-lg transition-all duration-300 transform
-                                                    ${selectedStyle === style 
-                                                        ? 'bg-brand-primary text-brand-bg shadow-lg shadow-brand-primary/30 scale-[1.02]' 
-                                                        : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.02]'}`}
-                                            >
-                                                {style}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-                    
-                    {inputMode === 'inspect' && (
-                        <div>
-                             <label className="block text-sm font-bold mb-2 text-brand-text">1. Paste HTML for Analysis</label>
-                             <p className="text-[10px] text-brand-muted mb-3">
-                                 Our AI will extract design tokens, architecture, and structural components from the code to help you understand how it was built.
-                             </p>
-                             <textarea
-                                value={inspectHtmlInput}
-                                onChange={(e) => setInspectHtmlInput(e.target.value)}
-                                placeholder="Paste HTML here to perform a Deep Design Audit..."
-                                className="w-full h-48 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
-                            />
-                        </div>
-                    )}
+  const textareaStyle = {
+    width: '100%',
+    background: 'rgba(0,10,5,0.8)',
+    border: '1px solid var(--brand-border)',
+    color: 'var(--brand-text)',
+    fontFamily: 'Share Tech Mono, monospace',
+    fontSize: '12px',
+    padding: '10px 12px',
+    outline: 'none',
+    resize: 'none' as const,
+    letterSpacing: '0.03em',
+    lineHeight: '1.6',
+  };
 
-                    {inputMode === 'modify' && (
-                        <>
-                            <div className="space-y-4">
-                                 <div className="flex items-center justify-between">
-                                    <label className="block text-sm font-bold text-brand-text">1. Your Existing HTML</label>
-                                    {props.currentHtml && (
-                                        <button 
-                                            onClick={() => setHtmlInput(props.currentHtml || '')}
-                                            className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-1 rounded hover:bg-brand-primary/20 transition-colors uppercase font-bold"
-                                        >
-                                            Use Current Output
-                                        </button>
-                                    )}
-                                 </div>
-                                 <textarea
-                                    value={htmlInput}
-                                    onChange={(e) => setHtmlInput(e.target.value)}
-                                    placeholder="Paste HTML to redesign..."
-                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl font-mono text-xs text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
-                                />
-                            </div>
-                            <div className="space-y-4">
-                                <label className="block text-sm font-bold text-brand-text">2. Modification Instructions (Optional)</label>
-                                <textarea
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder="e.g. Make it look like a sci-fi space dashboard with neon highlights..."
-                                    className="w-full h-20 p-4 bg-brand-bg border border-brand-border rounded-xl text-brand-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 outline-none placeholder:text-brand-muted/50"
-                                    disabled={isLoading}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                            if (!isGenerateDisabled) onGenerate();
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">3. Choose a target style</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {visualStyles.map((style) => (
-                                        <button
-                                            key={style}
-                                            onClick={() => setSelectedStyle(style)}
-                                            disabled={isLoading}
-                                            className={`px-3 py-2.5 min-h-[40px] text-[11px] font-bold rounded-lg transition-all duration-300 transform
-                                                ${selectedStyle === style 
-                                                    ? 'bg-brand-primary text-brand-bg shadow-lg shadow-brand-primary/30 scale-[1.02]' 
-                                                    : 'bg-brand-bg border border-brand-border text-brand-muted hover:border-brand-primary hover:text-brand-primary hover:scale-[1.02]'}`}
-                                        >
-                                            {style}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
+  return (
+    <div className="flex flex-col h-full w-full" style={{ background: 'var(--brand-surface)' }}>
 
-                    {inputMode === 'clone' && (
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">1. Target Website URL</label>
-                                <div className="relative">
-                                    <GlobeAltIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
-                                    <input
-                                        type="url"
-                                        value={urlInput}
-                                        onChange={(e) => setUrlInput(e.target.value)}
-                                        placeholder="https://example.com"
-                                        className="w-full p-4 pl-12 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 text-brand-text outline-none placeholder:text-brand-muted/50"
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">2. Paste Source HTML (Optional)</label>
-                                <p className="text-[10px] text-brand-muted mb-2">
-                                    Providing raw HTML directly gives the highest fidelity results.
-                                </p>
-                                <textarea
-                                    value={pastedContent}
-                                    onChange={(e) => setPastedContent(e.target.value)}
-                                    placeholder="Paste HTML here for precision cloning..."
-                                    className="w-full h-32 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50 font-mono text-[11px]"
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-brand-text">3. Additional Context (Optional)</label>
-                                <p className="text-[10px] text-brand-muted mb-2">
-                                    Add any specific instructions or requirements for this clone.
-                                </p>
-                                <textarea
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder="e.g., Make it responsive, use a different font..."
-                                    className="w-full h-24 p-4 bg-brand-bg border border-brand-border rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition duration-200 resize-none text-brand-text outline-none placeholder:text-brand-muted/50"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                        </div>
-                    )}
-                    
-                    {inputMode === 'design' && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mb-4">
-                                <GenerateIcon className="w-8 h-8 text-brand-primary" />
-                            </div>
-                            <h3 className="text-xl font-bold text-brand-text mb-2">Interactive Wireframe Editor</h3>
-                            <p className="text-brand-muted text-sm max-w-xs mx-auto mb-6">
-                                Use the full-screen canvas on the right to design your wireframe visually, then generate UI from it.
-                            </p>
-                        </div>
-                    )}
-                    
-                </div>
-
-                {inputMode !== 'design' && (
-                    <div className="p-6 shrink-0 mt-auto border-t border-brand-border/50">
-                        <button
-                            onClick={onGenerate}
-                            disabled={isGenerateDisabled}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 min-h-[56px] text-lg font-bold text-brand-bg bg-brand-primary rounded-xl shadow-lg hover:bg-brand-secondary hover:text-white hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
-                        >
-                            {getButtonIcon()}
-                            {getButtonText()}
-                        </button>
-                    </div>
-                )}
-            </div>
+      {/* Mode selector header */}
+      <div style={{
+        borderBottom: '1px solid var(--brand-border)',
+        background: 'rgba(0,10,5,0.5)',
+        padding: '0',
+      }}>
+        {/* Header label */}
+        <div style={{
+          padding: '8px 16px 4px',
+          borderBottom: '1px solid rgba(0,255,136,0.05)',
+        }}>
+          <span style={{
+            fontFamily: 'Share Tech Mono, monospace',
+            fontSize: '9px',
+            color: 'var(--brand-text-dim)',
+            letterSpacing: '0.3em',
+          }}>
+            ◈ INPUT_MODULE
+          </span>
         </div>
-    );
+
+        {/* Tabs */}
+        <div className="flex overflow-x-auto scrollbar-hide">
+          {mainTabs.map(tab => {
+            const active = inputMode === tab.mode;
+            return (
+              <button
+                key={tab.mode}
+                onClick={() => setInputMode(tab.mode)}
+                style={{
+                  fontFamily: 'Share Tech Mono, monospace',
+                  fontSize: '10px',
+                  letterSpacing: '0.15em',
+                  padding: '10px 14px',
+                  minHeight: 40,
+                  whiteSpace: 'nowrap',
+                  background: active ? 'rgba(0,255,136,0.08)' : 'transparent',
+                  color: active ? 'var(--brand-primary)' : 'var(--brand-text-dim)',
+                  borderBottom: active ? '1px solid var(--brand-primary)' : '1px solid transparent',
+                  borderRight: '1px solid var(--brand-border)',
+                  textShadow: active ? '0 0 8px rgba(0,255,136,0.5)' : 'none',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                disabled={isLoading}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: '20px 16px' }}>
+
+        {(inputMode === 'description' || inputMode === 'blueprint' || inputMode === 'design-system') && (
+          <div className="space-y-6">
+            {/* Input */}
+            <div>
+              <SectionLabel
+                num="01"
+                label={
+                  inputMode === 'blueprint' ? 'STRUCTURE_DESCRIPTION' :
+                  inputMode === 'design-system' ? 'BRAND_DESCRIPTION' :
+                  'UI_PROMPT_INPUT'
+                }
+              />
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                rows={5}
+                placeholder={
+                  inputMode === 'blueprint' ? '> e.g., multi-step checkout form...' :
+                  inputMode === 'design-system' ? '> e.g., fintech app for Gen Z...' :
+                  '> e.g., sleek dark fitness dashboard...'
+                }
+                style={textareaStyle}
+                disabled={isLoading}
+              />
+              {/* Char counter */}
+              <div style={{
+                fontFamily: 'Share Tech Mono, monospace',
+                fontSize: '9px',
+                color: 'var(--brand-text-dim)',
+                textAlign: 'right',
+                marginTop: '4px',
+                letterSpacing: '0.1em',
+              }}>
+                {userInput.length} CHARS
+              </div>
+            </div>
+
+            {/* Style matrix */}
+            {inputMode === 'description' && (
+              <div>
+                <SectionLabel num="02" label="VISUAL_STYLE_MATRIX" />
+                <div className="grid grid-cols-2 gap-1.5">
+                  {visualStyles.map((style) => {
+                    const isSelected = selectedStyle === style;
+                    const tag = STYLE_TAG_MAP[style] || style.slice(0, 3).toUpperCase();
+                    return (
+                      <button
+                        key={style}
+                        onClick={() => setSelectedStyle(style)}
+                        disabled={isLoading}
+                        style={{
+                          fontFamily: 'Share Tech Mono, monospace',
+                          fontSize: '10px',
+                          letterSpacing: '0.08em',
+                          padding: '8px 10px',
+                          background: isSelected ? 'rgba(0,255,136,0.1)' : 'rgba(0,10,5,0.5)',
+                          border: isSelected ? '1px solid var(--brand-primary)' : '1px solid var(--brand-border)',
+                          color: isSelected ? 'var(--brand-primary)' : 'var(--brand-text-dim)',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          textShadow: isSelected ? '0 0 6px rgba(0,255,136,0.4)' : 'none',
+                        }}
+                      >
+                        <span style={{
+                          fontSize: '9px',
+                          color: isSelected ? 'var(--brand-bg)' : 'var(--brand-text-dim)',
+                          background: isSelected ? 'var(--brand-primary)' : 'rgba(0,255,136,0.07)',
+                          padding: '1px 4px',
+                          minWidth: 28,
+                          textAlign: 'center',
+                          letterSpacing: '0.05em',
+                        }}>
+                          {tag}
+                        </span>
+                        <span style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                          {style.toUpperCase()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {inputMode === 'inspect' && (
+          <div>
+            <SectionLabel num="01" label="HTML_INPUT_BUFFER" />
+            <div style={{
+              fontFamily: 'Share Tech Mono, monospace',
+              fontSize: '10px',
+              color: 'var(--brand-text-dim)',
+              marginBottom: '8px',
+              lineHeight: 1.6,
+              letterSpacing: '0.05em',
+            }}>
+              // PASTE TARGET HTML FOR DEEP DESIGN DNA EXTRACTION
+            </div>
+            <textarea
+              value={inspectHtmlInput}
+              onChange={(e) => setInspectHtmlInput(e.target.value)}
+              rows={12}
+              placeholder="&lt;!-- paste HTML here... --&gt;"
+              style={textareaStyle}
+            />
+          </div>
+        )}
+
+        {inputMode === 'modify' && (
+          <div className="space-y-5">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <SectionLabel num="01" label="BASE_HTML" />
+                {props.currentHtml && (
+                  <button
+                    onClick={() => setHtmlInput(props.currentHtml || '')}
+                    style={{
+                      fontFamily: 'Share Tech Mono, monospace',
+                      fontSize: '9px',
+                      letterSpacing: '0.1em',
+                      color: 'var(--brand-primary)',
+                      border: '1px solid rgba(0,255,136,0.3)',
+                      background: 'rgba(0,255,136,0.05)',
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    USE_CURRENT
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={htmlInput}
+                onChange={(e) => setHtmlInput(e.target.value)}
+                rows={6}
+                placeholder="// paste HTML to modify..."
+                style={textareaStyle}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <SectionLabel num="02" label="STYLE_REFERENCE" />
+                {props.currentHtml && (
+                  <button
+                    onClick={() => setCloneHtmlInput(props.currentHtml || '')}
+                    style={{
+                      fontFamily: 'Share Tech Mono, monospace',
+                      fontSize: '9px',
+                      letterSpacing: '0.1em',
+                      color: 'var(--brand-primary)',
+                      border: '1px solid rgba(0,255,136,0.3)',
+                      background: 'rgba(0,255,136,0.05)',
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    USE_CURRENT
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={cloneHtmlInput}
+                onChange={(e) => setCloneHtmlInput(e.target.value)}
+                rows={6}
+                placeholder="// paste style reference HTML..."
+                style={textareaStyle}
+              />
+            </div>
+          </div>
+        )}
+
+        {inputMode === 'clone' && (
+          <div className="space-y-5">
+            <div>
+              <SectionLabel num="01" label="TARGET_URL" />
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute',
+                  left: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontFamily: 'Share Tech Mono, monospace',
+                  fontSize: '11px',
+                  color: 'var(--brand-primary)',
+                }}>
+                  ⊹
+                </span>
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://target.com"
+                  style={{ ...textareaStyle, paddingLeft: 28, height: 40 }}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div>
+              <SectionLabel num="02" label="SOURCE_HTML_OVERRIDE" />
+              <textarea
+                value={pastedContent}
+                onChange={(e) => setPastedContent(e.target.value)}
+                rows={6}
+                placeholder="// paste raw HTML for precision cloning..."
+                style={textareaStyle}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <SectionLabel num="03" label="ADDITIONAL_CONTEXT" />
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                rows={3}
+                placeholder="// extra instructions..."
+                style={textareaStyle}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+        )}
+
+        {inputMode === 'design' && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div style={{
+              width: 64,
+              height: 64,
+              border: '1px solid var(--brand-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 4,
+                border: '1px solid rgba(0,255,136,0.2)',
+              }} />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="0" stroke="var(--brand-primary)" strokeWidth="1.5"/>
+                <line x1="3" y1="8" x2="21" y2="8" stroke="var(--brand-primary)" strokeWidth="1" opacity="0.5"/>
+                <circle cx="12" cy="14" r="3" stroke="var(--brand-primary)" strokeWidth="1"/>
+              </svg>
+            </div>
+            <p style={{
+              fontFamily: 'Share Tech Mono, monospace',
+              fontSize: '11px',
+              color: 'var(--brand-primary)',
+              letterSpacing: '0.15em',
+              marginBottom: 8,
+            }}>
+              CANVAS_EDITOR_ACTIVE
+            </p>
+            <p style={{
+              fontFamily: 'Share Tech Mono, monospace',
+              fontSize: '10px',
+              color: 'var(--brand-text-dim)',
+              letterSpacing: '0.08em',
+              lineHeight: 1.6,
+              maxWidth: 200,
+            }}>
+              // USE THE MAIN CANVAS TO DESIGN YOUR WIREFRAME VISUALLY
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Generate button */}
+      {inputMode !== 'design' && (
+        <div style={{
+          padding: '14px 16px',
+          borderTop: '1px solid var(--brand-border)',
+          background: 'rgba(0,10,5,0.8)',
+        }}>
+          <button
+            onClick={onGenerate}
+            disabled={isGenerateDisabled}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontFamily: 'Share Tech Mono, monospace',
+              fontSize: '12px',
+              fontWeight: 700,
+              letterSpacing: '0.2em',
+              background: isGenerateDisabled ? 'rgba(0,255,136,0.04)' : 'var(--brand-primary)',
+              color: isGenerateDisabled ? 'var(--brand-text-dim)' : 'var(--brand-bg)',
+              border: isGenerateDisabled
+                ? '1px solid var(--brand-border)'
+                : '1px solid var(--brand-primary)',
+              cursor: isGenerateDisabled ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              textShadow: isGenerateDisabled ? 'none' : '0 0 12px rgba(0,0,0,0.8)',
+              boxShadow: isGenerateDisabled ? 'none' : '0 0 20px rgba(0,255,136,0.2), inset 0 0 20px rgba(0,255,136,0.05)',
+            }}
+          >
+            {isLoading && (
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
+                <LoadingSpinner style={{ width: 16, height: 16 }} />
+              </span>
+            )}
+            {getButtonText()}
+          </button>
+
+          {/* Progress bar when loading */}
+          {isLoading && (
+            <div style={{
+              marginTop: 6,
+              height: 2,
+              background: 'var(--brand-border)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                background: 'var(--brand-primary)',
+                width: '30%',
+                animation: 'loading-bar 1.5s ease-in-out infinite',
+                boxShadow: '0 0 8px var(--brand-primary)',
+              }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); width: 40%; }
+          50% { width: 60%; }
+          100% { transform: translateX(350%); width: 40%; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
 };
 
 export default InputPanel;
