@@ -355,42 +355,302 @@ REQUIREMENTS:
     return generateWithContinuation(userPrompt, system, `UI page: ${prompt.slice(0, 100)}`);
 };
 
+/**
+ * Extract the structural skeleton from an HTML document:
+ * section tag names, IDs, class hints, and text content anchors.
+ * Used to lock the remix output to the original's content structure.
+ */
+function extractStructuralMap(html: string): string {
+    const lines: string[] = [];
+    // Extract <title>
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (titleMatch) lines.push(`TITLE: ${titleMatch[1].trim()}`);
+
+    // Extract top-level semantic sections in order
+    const sectionPattern = /<(nav|header|main|section|article|aside|footer)([^>]*)>/gi;
+    let match: RegExpExecArray | null;
+    let sectionIndex = 0;
+    while ((match = sectionPattern.exec(html)) !== null && sectionIndex < 30) {
+        const tag = match[1].toLowerCase();
+        const attrs = match[2];
+        const idMatch = attrs.match(/id=["']([^"']+)["']/i);
+        const classMatch = attrs.match(/class=["']([^"']{0,80})["']/i);
+        const ariaMatch = attrs.match(/aria-label=["']([^"']+)["']/i);
+        let desc = `<${tag}`;
+        if (idMatch) desc += ` id="${idMatch[1]}"`;
+        if (ariaMatch) desc += ` aria-label="${ariaMatch[1]}"`;
+        if (classMatch) {
+            // extract meaningful class tokens (bg-, text-, font-, etc.)
+            const classes = classMatch[1].split(/\s+/)
+                .filter(c => /^(bg-|text-|border-|font-|flex|grid|sticky|fixed|hero|banner|nav|footer|header|product|feature|testimonial|cta|marquee)/.test(c))
+                .slice(0, 6).join(' ');
+            if (classes) desc += ` class="${classes}..."`;
+        }
+        desc += '>';
+        lines.push(desc);
+        sectionIndex++;
+    }
+
+    // Extract all heading text in order (h1-h3) as content anchors
+    const headingPattern = /<h([1-3])[^>]*>([\s\S]*?)<\/h[1-3]>/gi;
+    let hIdx = 0;
+    while ((match = headingPattern.exec(html)) !== null && hIdx < 20) {
+        const text = match[2].replace(/<[^>]+>/g, '').trim().slice(0, 80);
+        if (text) lines.push(`H${match[1]}: "${text}"`);
+        hIdx++;
+    }
+
+    // Extract nav link text
+    const navPattern = /<a[^>]*class="[^"]*(?:nav|menu)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+    const navTexts: string[] = [];
+    while ((match = navPattern.exec(html)) !== null && navTexts.length < 10) {
+        const text = match[1].replace(/<[^>]+>/g, '').trim();
+        if (text) navTexts.push(text);
+    }
+    if (navTexts.length) lines.push(`NAV_LINKS: [${navTexts.join(', ')}]`);
+
+    // Check for key sections
+    const hasAnnouncement = /<div[^>]+(?:animate-marquee|marquee|announcement)[^>]*>/i.test(html);
+    const hasHero = /<section[^>]*(?:hero|banner)[^>]*>|<h1/i.test(html);
+    const hasFeatures = /<section[^>]*(?:feature|benefit)[^>]*>/i.test(html);
+    const hasFooter = /<footer/i.test(html);
+    const hasForm = /<form/i.test(html);
+    if (hasAnnouncement) lines.push('HAS: announcement/marquee bar');
+    if (hasHero) lines.push('HAS: hero section with H1');
+    if (hasFeatures) lines.push('HAS: features section');
+    if (hasForm) lines.push('HAS: form (newsletter/contact)');
+    if (hasFooter) lines.push('HAS: footer (MUST be preserved in output)');
+
+    return lines.join('\n');
+}
+
+/**
+ * Extract just the visual design tokens from the style reference HTML:
+ * colors, fonts, spacing patterns, border styles, shadow types, animation names.
+ * Does NOT extract content — content always comes from originalHtml.
+ */
+function extractStyleTokens(styleHtml: string): string {
+    const tokens: string[] = [];
+
+    // Google Fonts
+    const fontMatch = styleHtml.match(/fonts\.googleapis\.com\/css2\?([^"']+)/);
+    if (fontMatch) tokens.push(`GOOGLE_FONTS: ${decodeURIComponent(fontMatch[1]).slice(0, 200)}`);
+
+    // Tailwind config colors
+    const colorBlock = styleHtml.match(/colors\s*:\s*\{([\s\S]{0,2000}?)\}/);
+    if (colorBlock) tokens.push(`TAILWIND_COLORS: ${colorBlock[1].slice(0, 600)}`);
+
+    // Font family
+    const fontFamilyBlock = styleHtml.match(/fontFamily\s*:\s*\{([\s\S]{0,400}?)\}/);
+    if (fontFamilyBlock) tokens.push(`FONT_FAMILIES: ${fontFamilyBlock[1].slice(0, 200)}`);
+
+    // Shadow config
+    const shadowBlock = styleHtml.match(/boxShadow\s*:\s*\{([\s\S]{0,400}?)\}/);
+    if (shadowBlock) tokens.push(`SHADOWS: ${shadowBlock[1].slice(0, 200)}`);
+
+    // Animation names
+    const animNames = [...styleHtml.matchAll(/animate-([a-z-]+)/g)]
+        .map(m => m[1])
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .slice(0, 15);
+    if (animNames.length) tokens.push(`ANIMATIONS_USED: ${animNames.join(', ')}`);
+
+    // Dominant Tailwind class patterns (non-content classes)
+    const styleClasses = [...styleHtml.matchAll(/class="([^"]{0,300})"/g)]
+        .flatMap(m => m[1].split(/\s+/))
+        .filter(c => /^(bg-|text-|border-|shadow-|rounded-|font-|tracking-|leading-|uppercase|lowercase|italic|underline|decoration-)/.test(c))
+        .reduce((acc: Record<string, number>, c) => { acc[c] = (acc[c] || 0) + 1; return acc; }, {});
+    const topClasses = Object.entries(styleClasses)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 40)
+        .map(([cls]) => cls);
+    if (topClasses.length) tokens.push(`DOMINANT_STYLE_CLASSES: ${topClasses.join(' ')}`);
+
+    // Background and text color patterns from inline styles
+    const bgColors = [...styleHtml.matchAll(/background(?:-color)?\s*:\s*([^;'"]{3,30})/g)]
+        .map(m => m[1].trim()).slice(0, 8);
+    if (bgColors.length) tokens.push(`BG_COLORS: ${bgColors.join(', ')}`);
+
+    // Border radius patterns
+    const radiusClasses = topClasses.filter(c => c.startsWith('rounded-'));
+    if (radiusClasses.length) tokens.push(`BORDER_RADIUS_STYLE: ${radiusClasses.join(' ')}`);
+
+    return tokens.join('\n');
+}
+
 export const modifyHtml = async (
     originalHtml: string,
     styleHtml: string,
 ): Promise<{ html: string; css: string }> => {
-    const system = `You are an expert UI developer specializing in design system migration.
-Re-style HTML while preserving all content and structure.
+    // ── Step 1: Pre-process both inputs before hitting the model ────────────
+    // Extract structural map from original (content anchor)
+    const structuralMap = extractStructuralMap(originalHtml);
 
-${FULL_PAGE_SYSTEM}
+    // Extract style tokens from reference (visual system only)
+    const styleTokens = extractStyleTokens(styleHtml);
 
-CRITICAL: The output MUST be a complete HTML document including:
-- All original content sections
-- Navigation preserved from original
-- A COMPLETE footer section (do not omit it)
-- Closing </body></html>`;
+    // We send the full original HTML but cap it. Style reference is token-extracted,
+    // so we don't waste the full context window on it.
+    const truncatedOriginal = safeHtmlTruncate(originalHtml, 30000);
 
-    const userPrompt = `Re-style the "Original HTML" using the design language from "Style Reference HTML".
+    const system = `You are an expert UI developer performing a STYLE TRANSPLANT — NOT a redesign.
 
-ORIGINAL HTML:
-${safeHtmlTruncate(originalHtml, 25000)}
+YOUR TASK:
+Take the ORIGINAL HTML and rewrite it with new styles from the STYLE REFERENCE.
+Content, structure, sections, headings, links, nav items, and footer MUST be identical to the original.
+Only CSS classes, colors, fonts, spacing, borders, shadows, and visual decoration change.
 
-STYLE REFERENCE:
-${safeHtmlTruncate(styleHtml, 25000)}
+WHAT MUST NEVER CHANGE:
+- Page title and meta tags
+- Navigation links and their text
+- All heading text (h1, h2, h3) — word for word
+- All paragraph/body text content
+- All section ORDER (announcement bar → header → hero → features → footer, etc.)
+- Footer content (company name, links, copyright, social icons)
+- Form fields and labels
+- Product names, prices, descriptions
 
-REQUIREMENTS:
-- Preserve ALL content from the original — do not truncate any sections
-- Apply styles from the reference
-- Keep the complete page structure including navigation and footer
-- The footer must be fully populated (links, copyright, social icons)
+WHAT MUST CHANGE:
+- All Tailwind CSS classes (replace with equivalent classes matching the style reference)
+- Colors (replace all bg-, text-, border- classes with style reference equivalents)
+- Typography (replace font families with those from style reference)
+- Shadows, border-radius, spacing — adapt to match the reference's visual language
+- Add any CSS animations/keyframes from the style reference
+- Replace Google Fonts import with fonts from the style reference
+
+CRITICAL OUTPUT RULES:
+- Output a COMPLETE HTML document from <!DOCTYPE html> to </html>
+- Include ALL sections from the original — announcement bar, nav, hero, ALL content sections, footer
+- The footer must be fully populated — same links and copyright as original
+- Never skip or abbreviate any section
 - Return JSON: { "html": "...", "css": "..." }`;
 
-    return generateWithContinuation(
-        userPrompt,
-        system,
-        'HTML remix: apply style reference to original content',
-        0.15,
-    );
+    const userPrompt = `Perform a style transplant on the ORIGINAL HTML using the STYLE REFERENCE's visual language.
+
+=== STRUCTURAL MAP OF ORIGINAL (every section MUST appear in output) ===
+${structuralMap}
+
+=== STYLE REFERENCE TOKENS (apply these visual patterns) ===
+${styleTokens}
+
+=== ORIGINAL HTML (content is locked — preserve word-for-word) ===
+${truncatedOriginal}
+
+INSTRUCTION:
+1. Read the structural map above — these are ALL the sections you must output
+2. Apply the style reference tokens (colors, fonts, shadows, radius) to each section
+3. Keep every heading, paragraph, nav link, and footer link exactly as in original
+4. Return a complete HTML document with the original's structure and the reference's style
+5. Return JSON: { "html": "...", "css": "..." }`;
+
+    // ── Step 2: Generate with lower thinking level (HIGH causes content drift) ──
+    const response = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: { role: 'user', parts: [{ text: userPrompt }] },
+        config: {
+            systemInstruction: system,
+            maxOutputTokens: MAX_TOKENS,
+            temperature: 0.1,  // very low — this is a precision task not a creative one
+            // No ThinkingLevel.HIGH — high thinking causes structural drift on remix tasks
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    html: { type: Type.STRING },
+                    css:  { type: Type.STRING },
+                },
+                required: ['html', 'css'],
+            },
+        },
+    });
+
+    const rawText = response.text ?? '';
+    let parsed = extractJson(rawText);
+
+    if (!parsed) {
+        throw new Error('Remix returned an unparseable response. Please try again.');
+    }
+
+    // ── Step 3: Verify structural completeness ─────────────────────────────────
+    // Check that key headings from original still appear in output
+    const originalHeadings = [...originalHtml.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
+        .map(m => m[1].replace(/<[^>]+>/g, '').trim().slice(0, 40).toLowerCase())
+        .filter(t => t.length > 5);
+
+    const outputLower = parsed.html.toLowerCase();
+    const missingHeadings = originalHeadings.filter(h => !outputLower.includes(h));
+
+    if (missingHeadings.length > originalHeadings.length * 0.4) {
+        // More than 40% of headings are missing — the model drifted to generation mode.
+        // Run a correction pass.
+        console.warn(`[modifyHtml] Content drift detected — ${missingHeadings.length}/${originalHeadings.length} headings missing. Running correction pass.`);
+
+        const correctionPrompt = `The previous style transplant FAILED because it generated new content instead of preserving original content.
+
+Missing headings that must appear verbatim:
+${missingHeadings.map(h => `- "${h}"`).join('\n')}
+
+ORIGINAL HTML (the content to preserve):
+${safeHtmlTruncate(originalHtml, 20000)}
+
+FAILED OUTPUT (the styles are good but content is wrong):
+${safeHtmlTruncate(parsed.html, 10000)}
+
+Fix the output by:
+1. Keeping ALL styles/classes from the failed output
+2. Replacing ALL content/text with the ORIGINAL HTML's content
+3. Ensuring all original headings, nav links, footer links appear verbatim
+4. Return JSON: { "html": "...", "css": "..." }`;
+
+        try {
+            const correctionResponse = await ai.models.generateContent({
+                model: MAIN_MODEL,
+                contents: { role: 'user', parts: [{ text: correctionPrompt }] },
+                config: {
+                    systemInstruction: system,
+                    maxOutputTokens: MAX_TOKENS,
+                    temperature: 0.05,
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            html: { type: Type.STRING },
+                            css:  { type: Type.STRING },
+                        },
+                        required: ['html', 'css'],
+                    },
+                },
+            });
+            const corrected = extractJson(correctionResponse.text ?? '');
+            if (corrected && corrected.html.length > 500) {
+                parsed = corrected;
+            }
+        } catch (corrErr) {
+            console.error('[modifyHtml] Correction pass failed:', corrErr);
+            // Fall through with original parsed result
+        }
+    }
+
+    // ── Step 4: Truncation recovery ───────────────────────────────────────────
+    if (!isHtmlComplete(parsed.html)) {
+        console.warn('[modifyHtml] HTML truncated — running continuation pass...');
+        try {
+            const cont = await requestContinuation(parsed.html, 'HTML style transplant remix');
+            if (cont.trim().length > 50) {
+                parsed.html = stitchContinuation(parsed.html, cont);
+            }
+        } catch (err) {
+            console.error('[modifyHtml] Continuation failed:', err);
+        }
+        if (!isHtmlComplete(parsed.html)) {
+            parsed.html = forceCloseHtml(parsed.html);
+        }
+    }
+
+    return {
+        html: cleanHtml(parsed.html),
+        css:  parsed.css || '',
+    };
 };
 
 export const generateBlueprint = async (prompt: string): Promise<{ html: string; css: string }> => {
