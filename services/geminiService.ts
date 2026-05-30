@@ -8,35 +8,22 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const CLONE_MODEL = 'gemini-3.1-pro-preview'; 
 const VISION_MODEL = 'gemini-3.1-pro-preview'; // Explicitly using pro for vision tasks
 const MAX_TOKENS = 32768;                       // was 8192 — critical fix
-const HTML_CONTEXT_CHARS = 40_000;              // scraped HTML context window
+const HTML_CONTEXT_CHARS = 25_000;              // scraped HTML context window
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Strip the data-URI prefix from a base64 string so it can be sent as
- * inlineData.data (which must be raw base64, not a data URI).
- */
 function stripDataUriPrefix(b64: string): string {
     const commaIdx = b64.indexOf(',');
     return commaIdx !== -1 ? b64.slice(commaIdx + 1) : b64;
 }
 
-/**
- * Truncate HTML context at a safe tag boundary so the model never receives
- * a broken mid-tag string. Returns the truncated string without any trailing
- * ellipsis (which confuses the model into thinking the page is partially done).
- */
 function safeHtmlTruncate(html: string, maxChars: number): string {
     if (html.length <= maxChars) return html;
     const slice = html.slice(0, maxChars);
-    // Walk back to the last complete closing tag
     const lastClose = slice.lastIndexOf('>');
     return lastClose !== -1 ? slice.slice(0, lastClose + 1) : slice;
 }
 
-/**
- * Strip common "non-scrollable" classes that Gemini often adds despite instructions.
- */
 function cleanHtml(html: string): string {
     return html
         .replace(/\bh-screen\b/g, 'min-h-screen')
@@ -44,13 +31,6 @@ function cleanHtml(html: string): string {
         .replace(/\boverflow-y-hidden\b/g, 'overflow-y-visible');
 }
 
-/**
- * Extract JSON from model output robustly:
- *   1. Try direct parse
- *   2. Strip markdown fences (```json ... ```) then parse
- *   3. Extract the first {...} block via regex then parse
- *   4. Return null if all attempts fail
- */
 function extractJson(raw: string): { html: string; css: string } | null {
     const attempts: string[] = [
         raw.trim(),
@@ -75,7 +55,6 @@ function extractJson(raw: string): { html: string; css: string } | null {
         }
     }
 
-    // Last resort: robust manual extraction for truncated JSON
     const extractString = (key: string): string => {
         const keyIndex = raw.indexOf(`"${key}"`);
         if (keyIndex === -1) return '';
@@ -118,23 +97,35 @@ function extractJson(raw: string): { html: string; css: string } | null {
     return null;
 }
 
-/**
- * Check whether a generated HTML string is complete (ends with </html>).
- */
 function isHtmlComplete(html: string): boolean {
     return /<\/html\s*>/i.test(html.trimEnd());
 }
 
-/**
- * Request a continuation from the model when the first pass was truncated.
- * Sends the partial HTML back and asks the model to complete it from where
- * it left off, returning only the remaining HTML (no JSON wrapper).
- */
+function forceCloseHtml(html: string): string {
+    let closed = html.trimEnd();
+    if (!closed.endsWith('</footer>') && closed.includes('<footer')) closed += '\n</footer>';
+    if (!closed.includes('</body>')) closed += '\n</body>';
+    if (!closed.includes('</html>')) closed += '\n</html>';
+    return closed;
+}
+
+function stitchContinuation(partial: string, continuation: string): string {
+    const overlapCheck = partial.slice(-200).trim();
+    const contTrimmed  = continuation.trimStart();
+    if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
+        return partial + contTrimmed.slice(overlapCheck.slice(-40).length);
+    }
+    return partial + contTrimmed;
+}
+
 async function requestContinuation(
     partialHtml: string,
     originalPrompt: string,
+    originalSystemInstruction: string
 ): Promise<string> {
-    const continuationSystem = `You are completing a partially generated HTML page.
+    const continuationSystem = `${originalSystemInstruction}
+    
+You are completing a partially generated HTML page.
 You will receive the HTML generated so far. Continue from EXACTLY where it left
 off and complete the page through to </html>. Output ONLY the continuation HTML
 — no JSON, no fences, no repetition of what was already generated.
@@ -163,19 +154,68 @@ You MUST include the footer section and close all open tags before </body></html
     return response.text ?? '';
 }
 
+async function generateWithContinuation(
+    systemInstruction: string,
+    userPrompt: string,
+    parts?: any[],
+    tools?: any[],
+    temperature: number = 0.5
+): Promise<{ html: string; css: string; responseObj: any }> {
+    const contentParts = parts || [{ text: userPrompt }];
+
+    const firstResponse = await ai.models.generateContent({
+        model: CLONE_MODEL,
+        contents: { role: 'user', parts: contentParts },
+        config: {
+            systemInstruction,
+            ...(tools ? { tools } : {}),
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+            maxOutputTokens: MAX_TOKENS,
+            temperature,
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    html: { type: Type.STRING },
+                    css: { type: Type.STRING }
+                },
+                required: ['html', 'css']
+            }
+        },
+    });
+
+    const rawText = firstResponse.text ?? '';
+    let parsed = extractJson(rawText);
+
+    if (!parsed) {
+        throw new Error('Gemini returned an unparseable response.');
+    }
+
+    if (!isHtmlComplete(parsed.html)) {
+        console.warn('HTML truncated — requesting continuation pass...');
+        try {
+            const continuation = await requestContinuation(parsed.html, userPrompt, systemInstruction);
+            parsed.html = stitchContinuation(parsed.html, continuation);
+            
+            if (!isHtmlComplete(parsed.html)) {
+                parsed.html = forceCloseHtml(parsed.html);
+            }
+        } catch (contErr) {
+            console.error('Continuation pass failed:', contErr);
+            parsed.html = forceCloseHtml(parsed.html + '\n<!-- generation was truncated -->\n');
+        }
+    }
+
+    return {
+        html: cleanHtml(parsed.html),
+        css: parsed.css ?? '',
+        responseObj: firstResponse
+    };
+}
+
 const getMimeType = (base64: string): string => {
     const match = base64.match(/^data:([^;]+);base64,/);
     return match ? match[1] : 'image/png';
-};
-
-const cleanHtmlResponse = (text: string): string => {
-    let refinedCode = text.trim();
-    const codeFenceRegex = /^```html\s*\n?(.*?)\n?\s*```$/s;
-    const match = refinedCode.match(codeFenceRegex);
-    if (match && match[1]) {
-        refinedCode = match[1].trim();
-    }
-    return refinedCode;
 };
 
 export const enhancePrompt = async (userInput: string, style: VisualStyle): Promise<string> => {
@@ -251,7 +291,7 @@ CRITICAL UI/UX PRO MAX RULES:
 9. NO GENERIC GRADIENTS: Avoid simple purple/blue gradients. Use layered radial backgrounds or sophisticated grain textures for depth.
 10. SCROLLABILITY: ALWAYS ensure page is vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
 11. SELECTED / HOVER EFFECTS: For any selected or interactive element, add a subtle hover effect (such as a slight scale transform e.g., hover:scale-[1.02], or a shadow change) to indicate interactivity.
-12. EXHAUSTIVE CONTENT: Never summarize HTML. Always write out all items in a grid or list (do NOT use "<!-- more items -->"). Always include the complete <main> section and the COMPLETE <footer>.
+12. EXHAUSTIVE CONTENT & MANDATORY FOOTER: Never summarize HTML. Always write out all items in a grid or list (do NOT use "<!-- more items -->"). Always include the complete <main> section and the COMPLETE <footer>.
 `;
 
 const STYLE_RECIPES = {
@@ -341,69 +381,22 @@ const STYLE_RECIPES = {
 export const generateHtmlFromPrompt = async (prompt: string, style?: VisualStyle): Promise<{ html: string; css: string }> => {
     const recipe = style ? STYLE_RECIPES[style] : "";
     const systemInstruction = `You are a Lead Product Designer. 
-    Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.
-    
-    STYLE GUIDELINES:
-    ${recipe}
-    
-    GENERAL PRINCIPLES:
-    ${UI_UX_PRO_MAX_RULES}`;
+Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.
+
+STYLE GUIDELINES:
+${recipe}
+
+GENERAL PRINCIPLES:
+${UI_UX_PRO_MAX_RULES}`;
+
     const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
 **PROMPT:** ${prompt}
 Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).
-CRITICAL: Generate a COMPLETE webpage with a <header>, <main> body with substantive sections, and a full <footer>. NEVER leave out the footer or use placeholder comments like "<!-- content -->".`;
+CRITICAL MANDATORY FOOTER: Generate a COMPLETE webpage with a <header>, <main> body with substantive sections, and a full <footer>. NEVER leave out the footer or use placeholder comments like "<!-- content -->".`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: userPrompt,
-            config: { 
-                systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                maxOutputTokens: MAX_TOKENS,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        html: { type: Type.STRING },
-                        css: { type: Type.STRING }
-                    },
-                    required: ['html', 'css']
-                }
-            }
-        });
-        
-        const rawText = response.text ?? '';
-        let parsed = extractJson(rawText) || { html: '', css: '' };
-
-        if (parsed.html && !isHtmlComplete(parsed.html)) {
-            console.warn('[generateHtml] HTML truncated — requesting continuation pass...');
-            try {
-                const continuation = await requestContinuation(parsed.html, userPrompt);
-                const overlapCheck = parsed.html.slice(-200).trim();
-                const contTrimmed  = continuation.trimStart();
-                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
-                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
-                } else {
-                    parsed.html += contTrimmed;
-                }
-
-                if (!isHtmlComplete(parsed.html)) {
-                    parsed.html = parsed.html.trimEnd();
-                    if (!parsed.html.endsWith('</footer>') && parsed.html.includes('<footer>')) parsed.html += '\n</footer>';
-                    if (!parsed.html.includes('</body>') && parsed.html.includes('<body'))   parsed.html += '\n</body>';
-                    if (!parsed.html.includes('</html>') && parsed.html.includes('<html'))   parsed.html += '\n</html>';
-                }
-            } catch (contErr) {
-                console.error('[generateHtml] Continuation pass failed:', contErr);
-                parsed.html = parsed.html.trimEnd();
-            }
-        }
-
-        return {
-            html: cleanHtml(parsed.html || ''),
-            css: parsed.css || ''
-        };
+        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
+        return { html, css };
     } catch (error) {
         console.error("Error generating HTML:", error);
         throw error;
@@ -411,6 +404,7 @@ CRITICAL: Generate a COMPLETE webpage with a <header>, <main> body with substant
 };
 
 export const modifyHtml = async (originalHtml: string, modifications: string, style: VisualStyle): Promise<{ html: string; css: string }> => {
+    const safeHtml = safeHtmlTruncate(originalHtml, HTML_CONTEXT_CHARS);
     const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `
 You are tasked with redesigning and remixing the following "Original HTML" into a entirely new visual language.
@@ -425,65 +419,16 @@ Requirements:
 - Replace any generic visual placeholders with better appropriate stylized blocks.
 
 ORIGINAL HTML:
-${originalHtml}
+${safeHtml}
 
 Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the FULL, COMPLETE, AND FULLY RESTYLED raw HTML webpage code. 
-CRITICAL: DO NOT return partial snippets, DO NOT summarize or shorten the page, and DO NOT use placeholder comments like \`<!-- rest of items -->\`. You MUST write out the ENTIRE page structure, including ALL middle sections, the FULL <main> body, and the COMPLETE <footer>.
+CRITICAL MANDATORY FOOTER: DO NOT return partial snippets, DO NOT summarize or shorten the page, and DO NOT use placeholder comments like \`<!-- rest of items -->\`. You MUST write out the ENTIRE page structure, including ALL middle sections, the FULL <main> body, and the COMPLETE <footer>.
 The 'css' field should contain any custom CSS needed.
 `;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: userPrompt,
-            config: { 
-                systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                maxOutputTokens: MAX_TOKENS,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        html: { type: Type.STRING },
-                        css: { type: Type.STRING }
-                    },
-                    required: ['html', 'css']
-                }
-            }
-        });
-        
-        const rawText = response.text ?? '';
-        let parsed = extractJson(rawText) || { html: '', css: '' };
-
-        // Continuation pass if HTML was truncated
-        if (parsed.html && !isHtmlComplete(parsed.html)) {
-            console.warn('[modifyHtml] HTML truncated — requesting continuation pass...');
-            try {
-                const continuation = await requestContinuation(parsed.html, userPrompt);
-                const overlapCheck = parsed.html.slice(-200).trim();
-                const contTrimmed  = continuation.trimStart();
-                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
-                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
-                } else {
-                    parsed.html += contTrimmed;
-                }
-
-                if (!isHtmlComplete(parsed.html)) {
-                    parsed.html = parsed.html.trimEnd();
-                    if (!parsed.html.endsWith('</footer>') && parsed.html.includes('<footer>')) parsed.html += '\n</footer>';
-                    if (!parsed.html.includes('</body>') && parsed.html.includes('<body'))   parsed.html += '\n</body>';
-                    if (!parsed.html.includes('</html>') && parsed.html.includes('<html'))   parsed.html += '\n</html>';
-                }
-            } catch (contErr) {
-                console.error('[modifyHtml] Continuation pass failed:', contErr);
-                parsed.html = parsed.html.trimEnd();
-            }
-        }
-
-        return {
-            html: cleanHtml(parsed.html || ''),
-            css: parsed.css || ''
-        };
+        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
+        return { html, css };
     } catch (error) {
         console.error("Error modifying HTML:", error);
         throw error;
@@ -494,33 +439,12 @@ export const generateBlueprint = async (prompt: string): Promise<{ html: string;
     const systemInstruction = "You are an expert UX designer. Convert UI prompts into low-fidelity, structural wireframes/blueprints using HTML and Tailwind CSS. Focus on layout, hierarchy, and content placement. Use a grayscale palette, simple boxes, and placeholder text (Lorem Ipsum). Avoid high-fidelity styles, images, or complex colors.\n" + UI_UX_PRO_MAX_RULES;
     const userPrompt = `Convert this UI prompt into a clean, structural wireframe/blueprint using HTML and Tailwind CSS.
 **PROMPT:** ${prompt}
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed.`;
+Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed.
+CRITICAL MANDATORY FOOTER: Generate a FULL page outline including a footer.`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: userPrompt,
-            config: { 
-                systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                maxOutputTokens: MAX_TOKENS,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        html: { type: Type.STRING },
-                        css: { type: Type.STRING }
-                    },
-                    required: ['html', 'css']
-                }
-            }
-        });
-        
-        const jsonResponse = JSON.parse(response.text || '{}');
-        return {
-            html: cleanHtml(jsonResponse.html || ''),
-            css: jsonResponse.css || ''
-        };
+        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
+        return { html, css };
     } catch (error) {
         console.error("Error generating blueprint:", error);
         throw error;
@@ -539,7 +463,7 @@ VISUAL REASONING PROTOCOL:
 CRITICAL GUIDELINES:
 1. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
 2. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
-3. EXHAUSTIVE GENERATION: Even if the wireframe skips details, you must generate a full, complete webpage containing a sensible <header>, comprehensive <main> content sections, and a complete <footer>. Do NOT truncate or use comment placeholders.
+3. EXHAUSTIVE GENERATION & MANDATORY FOOTER: Even if the wireframe skips details, you must generate a full, complete webpage containing a sensible <header>, comprehensive <main> content sections, and a complete <footer>. Do NOT truncate or use comment placeholders.
 
 ${UI_UX_PRO_MAX_RULES}`;
 
@@ -557,27 +481,8 @@ ${UI_UX_PRO_MAX_RULES}`;
     ];
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: { parts },
-            config: {
-                systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                maxOutputTokens: MAX_TOKENS,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        html: { type: Type.STRING },
-                        css: { type: Type.STRING }
-                    },
-                    required: ['html', 'css']
-                }
-            },
-        });
-
-        const jsonResponse = JSON.parse(response.text || '{}');
-        return { html: cleanHtml(jsonResponse.html || ''), css: jsonResponse.css || '' };
+        const { html, css } = await generateWithContinuation(systemInstruction, "Wireframe interpretation", parts, undefined, 0.5);
+        return { html, css };
     } catch (error) {
         console.error("Error generating from wireframe:", error);
         throw error;
@@ -692,7 +597,6 @@ export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
 };
 
 export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
-    // ── 1. Scrape the target URL ──────────────────────────────────────────────
     let scrapedData: { html?: string; title?: string } = {};
 
     if (url) {
@@ -734,7 +638,6 @@ CRITICAL MANDATORY RULES (DO NOT IGNORE):
 6. The user-provided HTML and text are the primary sources of truth. If it's in the source HTML, it MUST be in your generated HTML.
 `;
 
-    // ── 2. Build the prompt ───────────────────────────────────────────────────
     let userPrompt = url
         ? `Clone the website at ${url}. Use the provided HTML and text context to reconstruct the page with Tailwind CSS.`
         : `Reconstruct the UI shown in the provided materials as a high-fidelity Tailwind CSS page.`;
@@ -752,9 +655,9 @@ CRITICAL MANDATORY RULES (DO NOT IGNORE):
         userPrompt += `\n\nUser-provided HTML/Text Content:\n${pastedContent.trim()}`;
     }
 
-    userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }`;
+    userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }
+CRITICAL MANDATORY FOOTER: The page must be exhaustive and have a complete footer.`;
 
-    // ── 3. Assemble multimodal parts ──────────────────────────────────────────
     const parts: any[] = [{ text: userPrompt }];
 
     if (screenshots.length > 0) {
@@ -766,73 +669,11 @@ CRITICAL MANDATORY RULES (DO NOT IGNORE):
         }
     }
 
-    // ── 4. First-pass generation ──────────────────────────────────────────────
     try {
-        const firstResponse = await ai.models.generateContent({
-            model: CLONE_MODEL,
-            contents: { role: 'user', parts },
-            config: {
-                systemInstruction,
-                tools: [{ googleSearch: {} }],
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                maxOutputTokens: MAX_TOKENS,  // FIX: was 8192
-                temperature: 0.15,            // low temperature for faithful reconstruction
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        html: { type: Type.STRING },
-                        css: { type: Type.STRING }
-                    },
-                    required: ['html', 'css']
-                }
-            },
-        });
-
-        const rawText = firstResponse.text ?? '';
-        let parsed = extractJson(rawText);
-
-        if (!parsed) {
-            console.error('[cloneWebsite] Failed to parse Gemini response. Raw (first 500):', rawText.slice(0, 500));
-            throw new Error('Gemini returned an unparseable response. Please try again.');
-        }
-
-        // ── 5. Continuation pass if HTML was truncated ────────────────────────────
-        if (!isHtmlComplete(parsed.html)) {
-            console.warn('[cloneWebsite] HTML truncated — requesting continuation pass...');
-            try {
-                const continuation = await requestContinuation(parsed.html, userPrompt);
-                // Splice: find where the partial ended and where continuation picks up
-                const overlapCheck = parsed.html.slice(-200).trim();
-                const contTrimmed  = continuation.trimStart();
-                if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
-                    parsed.html += contTrimmed.slice(overlapCheck.slice(-40).length);
-                } else {
-                    parsed.html += contTrimmed;
-                }
-
-                if (!isHtmlComplete(parsed.html)) {
-                    // Force-close any dangling open structure
-                    parsed.html = parsed.html.trimEnd();
-                    if (!parsed.html.endsWith('</footer>')) parsed.html += '\n</footer>';
-                    if (!parsed.html.includes('</body>'))   parsed.html += '\n</body>';
-                    if (!parsed.html.includes('</html>'))   parsed.html += '\n</html>';
-                }
-            } catch (contErr) {
-                console.error('[cloneWebsite] Continuation pass failed:', contErr);
-                // Force-close gracefully rather than serving a broken page
-                parsed.html = parsed.html.trimEnd()
-                    + '\n<!-- generation was truncated -->\n</section></main></body></html>';
-            }
-        }
-
-        if (isHtmlComplete(parsed.html)) {
-            parsed.html = cleanHtml(parsed.html);
-        }
-
-        const sources = firstResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-        
-        return { html: parsed.html, css: parsed.css ?? '', sources };
+        const tools = [{ googleSearch: {} }];
+        const { html, css, responseObj } = await generateWithContinuation(systemInstruction, userPrompt, parts, tools, 0.15);
+        const sources = responseObj.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        return { html, css, sources };
     } catch (error) {
         console.error("Error cloning website:", error);
         throw error;
