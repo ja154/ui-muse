@@ -1,20 +1,18 @@
 import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { VisualStyle, GroundingSource, AnalysisResult } from '../types.ts';
 
-// Initializing the GoogleGenAI client with the API key from environment variables.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const CLONE_MODEL = 'gemini-3.1-pro-preview'; 
-const VISION_MODEL = 'gemini-3.1-pro-preview'; // Explicitly using pro for vision tasks
-const MAX_TOKENS = 32768;                       // was 8192 — critical fix
-const HTML_CONTEXT_CHARS = 25_000;              // scraped HTML context window
+const MAIN_MODEL   = 'gemini-3.1-pro-preview';
+const MAX_TOKENS   = 32768;          // always explicit — never rely on model default
+const HTML_CONTEXT_CHARS = 40_000;  // scraped HTML context window cap
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function stripDataUriPrefix(b64: string): string {
-    const commaIdx = b64.indexOf(',');
-    return commaIdx !== -1 ? b64.slice(commaIdx + 1) : b64;
+    const i = b64.indexOf(',');
+    return i !== -1 ? b64.slice(i + 1) : b64;
 }
 
 function safeHtmlTruncate(html: string, maxChars: number): string {
@@ -31,14 +29,40 @@ function cleanHtml(html: string): string {
         .replace(/\boverflow-y-hidden\b/g, 'overflow-y-visible');
 }
 
+function isHtmlComplete(html: string): boolean {
+    const trimmed = html.trimEnd().toLowerCase();
+    return trimmed.endsWith('</html>');
+}
+
+function forceCloseHtml(html: string): string {
+    const h = html.trimEnd();
+    // Close any obviously-open block-level containers
+    const needsFooter  = !/<\/footer>/i.test(h);
+    const needsMain    = !/<\/main>/i.test(h) && !needsFooter;
+    const needsBody    = !/<\/body>/i.test(h);
+    const needsHtml    = !/<\/html>/i.test(h);
+
+    let fixed = h;
+    if (needsFooter) fixed += '\n</section>\n</footer>';
+    if (needsMain)   fixed += '\n</main>';
+    if (needsBody)   fixed += '\n</body>';
+    if (needsHtml)   fixed += '\n</html>';
+    return fixed;
+}
+
+/** 
+ * Extract { html, css } from raw model text.
+ * Handles: direct JSON, ```json fences, first-{...} extraction,
+ * and individual field regex as last resort.
+ */
 function extractJson(raw: string): { html: string; css: string } | null {
     const attempts: string[] = [
         raw.trim(),
         raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim(),
         (() => {
-            const start = raw.indexOf('{');
-            const end = raw.lastIndexOf('}');
-            return start !== -1 && end > start ? raw.slice(start, end + 1) : '';
+            const s = raw.indexOf('{');
+            const e = raw.lastIndexOf('}');
+            return s !== -1 && e > s ? raw.slice(s, e + 1) : '';
         })(),
     ];
 
@@ -46,106 +70,52 @@ function extractJson(raw: string): { html: string; css: string } | null {
         if (!attempt) continue;
         try {
             const parsed = JSON.parse(attempt);
-            if (typeof parsed.html === 'string') return {
-                html: parsed.html || '',
-                css: parsed.css || ''
-            };
-        } catch {
-            // try next
-        }
-    }
-
-    const extractString = (key: string): string => {
-        const keyIndex = raw.indexOf(`"${key}"`);
-        if (keyIndex === -1) return '';
-        
-        const colonIndex = raw.indexOf(':', keyIndex + key.length + 2);
-        if (colonIndex === -1) return '';
-        const startQuoteIndex = raw.indexOf('"', colonIndex + 1);
-        if (startQuoteIndex === -1) return '';
-        
-        let valStart = startQuoteIndex + 1;
-        let valEnd = -1;
-        let isEscaped = false;
-        
-        for (let i = valStart; i < raw.length; i++) {
-            if (isEscaped) {
-                isEscaped = false;
-            } else if (raw[i] === '\\') {
-                isEscaped = true;
-            } else if (raw[i] === '"') {
-                valEnd = i;
-                break;
+            if (typeof parsed.html === 'string') {
+                return { html: parsed.html, css: parsed.css || '' };
             }
-        }
-        
-        if (valEnd === -1) {
-            valEnd = raw.length;
-        }
-        
-        let extracted = raw.slice(valStart, valEnd);
-        return extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
-    };
-
-    const html = extractString('html');
-    const css = extractString('css');
-
-    if (html || css) {
-        return { html, css };
+        } catch { /* try next */ }
     }
 
+    // Last resort: regex-extract individual fields
+    const htmlMatch = raw.match(/"html"\s*:\s*"([\s\S]*?)(?<!\\)",\s*"css"/);
+    const cssMatch  = raw.match(/"css"\s*:\s*"([\s\S]*?)(?<!\\)"[\s\n]*\}/);
+    if (htmlMatch) {
+        return {
+            html: htmlMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'),
+            css:  cssMatch ? cssMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\') : '',
+        };
+    }
     return null;
 }
 
-function isHtmlComplete(html: string): boolean {
-    return /<\/html\s*>/i.test(html.trimEnd());
-}
-
-function forceCloseHtml(html: string): string {
-    let closed = html.trimEnd();
-    if (!closed.endsWith('</footer>') && closed.includes('<footer')) closed += '\n</footer>';
-    if (!closed.includes('</body>')) closed += '\n</body>';
-    if (!closed.includes('</html>')) closed += '\n</html>';
-    return closed;
-}
-
-function stitchContinuation(partial: string, continuation: string): string {
-    const overlapCheck = partial.slice(-200).trim();
-    const contTrimmed  = continuation.trimStart();
-    if (contTrimmed.startsWith(overlapCheck.slice(-40))) {
-        return partial + contTrimmed.slice(overlapCheck.slice(-40).length);
-    }
-    return partial + contTrimmed;
-}
-
+/**
+ * Universal continuation pass — works for any generation endpoint.
+ * Sends the partial HTML and asks the model to complete from where it stopped.
+ */
 async function requestContinuation(
     partialHtml: string,
-    originalPrompt: string,
-    originalSystemInstruction: string
+    contextHint: string,
 ): Promise<string> {
-    const continuationSystem = `${originalSystemInstruction}
-    
-You are completing a partially generated HTML page.
-You will receive the HTML generated so far. Continue from EXACTLY where it left
-off and complete the page through to </html>. Output ONLY the continuation HTML
-— no JSON, no fences, no repetition of what was already generated.
-MANDATORY: Your output must end with </footer></body></html>.`;
+    const system = `You are completing a partially generated HTML page.
+Continue from EXACTLY where it left off — output ONLY the remaining HTML, no JSON, no markdown, no repetition.
+Your output MUST end with </footer></body></html>.
+Include a complete, populated footer section before </body>.`;
 
-    const continuationPrompt = `${originalPrompt}
+    const prompt = `Context: ${contextHint}
 
-The previous generation was cut off. Here is what was generated so far:
---- PARTIAL HTML (continue from here) ---
-${partialHtml.slice(-8000)}
---- END OF PARTIAL ---
+The previous generation was truncated. Here is the end of what was generated:
+--- PARTIAL (last 6000 chars) ---
+${partialHtml.slice(-6000)}
+--- END ---
 
-Complete the remaining HTML now, starting from where it cut off.
-You MUST include the footer section and close all open tags before </body></html>.`;
+Complete the remaining HTML now. Start exactly where it cut off.
+MANDATORY: include a footer, close all open tags, end with </body></html>.`;
 
     const response = await ai.models.generateContent({
-        model: CLONE_MODEL,
-        contents: { role: 'user', parts: [{ text: continuationPrompt }] },
+        model: MAIN_MODEL,
+        contents: { role: 'user', parts: [{ text: prompt }] },
         config: {
-            systemInstruction: continuationSystem,
+            systemInstruction: system,
             maxOutputTokens: MAX_TOKENS,
             temperature: 0.1,
         },
@@ -154,62 +124,80 @@ You MUST include the footer section and close all open tags before </body></html
     return response.text ?? '';
 }
 
-async function generateWithContinuation(
-    systemInstruction: string,
-    userPrompt: string,
-    parts?: any[],
-    tools?: any[],
-    temperature: number = 0.5
-): Promise<{ html: string; css: string; responseObj: any }> {
-    const contentParts = parts || [{ text: userPrompt }];
+/**
+ * Stitch a continuation onto a partial HTML string.
+ * Avoids duplicating the overlap region.
+ */
+function stitchContinuation(partial: string, continuation: string): string {
+    const cont = continuation.trimStart();
+    // Find up to 60-char overlap at the seam to avoid duplication
+    const overlapLen = Math.min(60, partial.length);
+    const tail = partial.slice(-overlapLen);
+    const overlapStart = cont.indexOf(tail.slice(-30));
+    if (overlapStart !== -1) {
+        return partial + cont.slice(overlapStart + 30);
+    }
+    return partial + cont;
+}
 
-    const firstResponse = await ai.models.generateContent({
-        model: CLONE_MODEL,
-        contents: { role: 'user', parts: contentParts },
+/**
+ * Run a generation and, if the HTML is truncated, do one continuation pass.
+ * Returns { html, css } with a complete HTML document.
+ */
+async function generateWithContinuation(
+    prompt: string,
+    systemInstruction: string,
+    contextHint: string,
+    temperature = 0.2,
+): Promise<{ html: string; css: string }> {
+    const response = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: { role: 'user', parts: [{ text: prompt }] },
         config: {
             systemInstruction,
-            ...(tools ? { tools } : {}),
-            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
             maxOutputTokens: MAX_TOKENS,
             temperature,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
             responseMimeType: 'application/json',
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
                     html: { type: Type.STRING },
-                    css: { type: Type.STRING }
+                    css:  { type: Type.STRING },
                 },
-                required: ['html', 'css']
-            }
+                required: ['html', 'css'],
+            },
         },
     });
 
-    const rawText = firstResponse.text ?? '';
+    const rawText = response.text ?? '';
     let parsed = extractJson(rawText);
 
     if (!parsed) {
-        throw new Error('Gemini returned an unparseable response.');
+        throw new Error('Model returned an unparseable response. Please try again.');
     }
 
+    // ── Continuation pass if truncated ───────────────────────────────────────
     if (!isHtmlComplete(parsed.html)) {
-        console.warn('HTML truncated — requesting continuation pass...');
+        console.warn('[generateWithContinuation] HTML truncated — running continuation pass...');
         try {
-            const continuation = await requestContinuation(parsed.html, userPrompt, systemInstruction);
-            parsed.html = stitchContinuation(parsed.html, continuation);
-            
-            if (!isHtmlComplete(parsed.html)) {
-                parsed.html = forceCloseHtml(parsed.html);
+            const continuation = await requestContinuation(parsed.html, contextHint);
+            if (continuation.trim().length > 50) {
+                parsed.html = stitchContinuation(parsed.html, continuation);
             }
-        } catch (contErr) {
-            console.error('Continuation pass failed:', contErr);
-            parsed.html = forceCloseHtml(parsed.html + '\n<!-- generation was truncated -->\n');
+        } catch (err) {
+            console.error('[generateWithContinuation] Continuation failed:', err);
+        }
+
+        // Force-close if still incomplete
+        if (!isHtmlComplete(parsed.html)) {
+            parsed.html = forceCloseHtml(parsed.html);
         }
     }
 
     return {
         html: cleanHtml(parsed.html),
-        css: parsed.css ?? '',
-        responseObj: firstResponse
+        css:  parsed.css || '',
     };
 }
 
@@ -218,464 +206,466 @@ const getMimeType = (base64: string): string => {
     return match ? match[1] : 'image/png';
 };
 
-export const enhancePrompt = async (userInput: string, style: VisualStyle): Promise<string> => {
-    try {
-        const recipe = STYLE_RECIPES[style] || "";
-        const systemInstruction = `You are an expert UI/UX designer and prompt engineer. 
-        Your task is to expand simple UI descriptions into rich, detailed, and structured prompts.
-        Use the following Design Recipe as your stylistic foundation:
-        ${recipe}`;
-        const prompt = `
-The user wants a UI for: "${userInput}"
-The desired visual style is: "${style}"
+// ─── STYLE RECIPES ────────────────────────────────────────────────────────────
 
-Generate a prompt that includes detailed descriptions for:
-- **## Overall Vibe & Style**
-- **## Color Palette**
-- **## Typography**
-- **## Layout & Composition**
-- **## Key UI Components**
-- **## Iconography**
-- **## Micro-interactions & Animations (Subtle)**
-
-Your response should ONLY be the generated prompt text.
-        `;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: prompt,
-            config: { 
-                systemInstruction,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
-            }
-        });
-        
-        return response.text || '';
-    } catch (error) {
-        console.error("Error enhancing prompt:", error);
-        throw error;
-    }
-};
-
-export const generateImagePreview = async (prompt: string): Promise<string> => {
-    try {
-        const imagePrompt = `A high-fidelity UI mockup for a web/mobile application, embodying the following description. Focus on realism and aesthetics. UI design, UX, user interface. \n\n${prompt}`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts: [{ text: imagePrompt }] },
-        });
-
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
-            }
-        }
-        throw new Error("No image was generated.");
-    } catch (error) {
-        console.error("Error generating image:", error);
-        throw error;
-    }
-};
-
-const UI_UX_PRO_MAX_RULES = `
-CRITICAL UI/UX PRO MAX RULES:
-1. DESIGN INTENT: Every visual choice must reinforce a cohesive mood. Avoid "defaults."
-2. TYPOGRAPHIC RHYTHM: Create visual hierarchy through variation in font size, weight, and tracking. Use large display type (24vw+) sparingly for impact.
-3. SPACING RHYTHM: Use a strict 4px/8px spacing scale (p-2, p-4, p-8). Create rhythm through intentional variation—identical spacing everywhere looks robotic.
-4. ICONS: NEVER use emojis for structural icons. Use vector icons (Lucide, Phosphor). Ensure consistent 24px sizing and 1.5px/2px stroke width.
-5. INTERACTION: Use color, opacity, or elevation for states. DO NOT use layout-shifting transforms.
-6. TOUCH TARGETS: Ensure all interactive elements have a minimum 44x44px tap area.
-7. CONTRAST: Maintain >=4.5:1 text contrast. Use semantic color tokens.
-8. ACCESSIBILITY: Ensure proper focus states for ALL interactive elements (e.g., focus:ring-2 focus:ring-primary).
-9. NO GENERIC GRADIENTS: Avoid simple purple/blue gradients. Use layered radial backgrounds or sophisticated grain textures for depth.
-10. SCROLLABILITY: ALWAYS ensure page is vertically scrollable. Never use 'h-screen' or 'overflow-hidden' on the root.
-11. SELECTED / HOVER EFFECTS: For any selected or interactive element, add a subtle hover effect (such as a slight scale transform e.g., hover:scale-[1.02], or a shadow change) to indicate interactivity.
-12. EXHAUSTIVE CONTENT & MANDATORY FOOTER: Never summarize HTML. Always write out all items in a grid or list (do NOT use "<!-- more items -->"). Always include the complete <main> section and the COMPLETE <footer>.
-`;
-
-const STYLE_RECIPES = {
+export const STYLE_RECIPES: Record<VisualStyle, string> = {
     [VisualStyle.Minimalist]: `
         Recipe: Minimalist / Swiss
-        - Typography: High-quality sans-serif (Inter, Helvetica).
-        - Layout: Strict grid structure, plenty of negative space.
-        - Accents: Single bold highlight color against white/gray.
-        - Details: Thin 1px borders, muted secondary text, no shadows.
-    `,
+        - Typography: High-quality sans-serif (Inter, Helvetica). Strict grid structure, ample whitespace.
+        - Accents: Single bold highlight color against white/gray. Thin 1px borders, no shadows.`,
     [VisualStyle.Corporate]: `
         Recipe: Clean & Corporate
-        - Typography: System fonts (SF Pro, Inter) for trust.
-        - Layout: Clear hero section, feature cards with 24px+ corners.
-        - Colors: Trustworthy blues, crisp whites, subtle grays (#f5f2ed).
-        - Details: Functional clarity, simple data visualizations, clean shadows.
-    `,
+        - Typography: System fonts (SF Pro, Inter). Trustworthy blues, crisp whites, subtle grays.
+        - Details: Functional clarity, simple data visualizations, clean shadows.`,
     [VisualStyle.Bento]: `
         Recipe: Bento Grid
-        - Layout: Bento-box style grid with varying card sizes.
-        - Components: Cards with large rounded corners (24px-32px), subtle borders.
-        - Accents: Glassmorphism elements, subtle gradients within cards.
-        - Vibe: Modern, organized, "Apple-style" product showcase.
-    `,
+        - Layout: Bento-box style grid with varying card sizes, 24-32px corner radius.
+        - Accents: Glassmorphism elements, subtle gradients. Apple-style product showcase.`,
     [VisualStyle.Editorial]: `
         Recipe: Editorial / Magazine
-        - Typography: Massive display headers (Anton, Playfair Display) with tight line-height (0.85).
-        - Layout: Bold overlapping elements, skewed transforms, massive images.
-        - Hierarchy: Deep contrast between enormous display type and tiny uppercase labels.
-        - Details: Negative letter-spacing on headers, strong asymmetric balance.
-    `,
+        - Typography: Massive display headers (Anton, Playfair), tight line-height (0.85).
+        - Layout: Bold overlapping elements, skewed transforms, deep hierarchy.`,
     [VisualStyle.Luxury]: `
         Recipe: Luxury / Prestige
-        - Typography: Sophisticated serifs (Cormorant Garamond, Playfair Display).
-        - Layout: Exclusive feel, minimal content per section, vertical text accents.
-        - Colors: Warm off-whites (#f5f2ed), pure blacks, elegant gold/champagne accents.
-        - Details: Oval-masked images, very light font weights (300), 1px borders.
-    `,
+        - Typography: Sophisticated serifs (Cormorant Garamond). Warm off-whites, pure blacks, gold.
+        - Details: Oval-masked images, very light font weights (300), 1px borders.`,
     [VisualStyle.Technical]: `
         Recipe: Technical Dashboard
-        - Typography: Monospace for data (JetBrains Mono), italic serif for headers to humanize.
-        - Layout: Visible grid structure, scannable data columns, high information density.
-        - Colors: Muted backgrounds (#E4E3E0), stark black lines, scientific precision.
-        - Details: Invert-on-hover effects, timecodes, dashed borders.
-    `,
+        - Typography: Monospace for data (JetBrains Mono). High information density.
+        - Colors: Muted backgrounds (#E4E3E0), stark black lines, scientific precision.`,
     [VisualStyle.Atmospheric]: `
         Recipe: Atmospheric / Immersive
-        - Layout: Full-screen immersive layouts, layered radial gradients.
-        - Details: Heavy background blurs (60px+), glassmorphism (backdrop-filter: blur(30px)).
-        - Vibe: Cinematic, dreamy, or focused. Great for music players or meditation apps.
-        - Colors: Deep space blacks, vibrant core glows.
-    `,
+        - Layout: Full-screen immersive, layered radial gradients, heavy blurs (60px+).
+        - Vibe: Cinematic, dreamy. Great for music players or meditation apps.`,
     [VisualStyle.Brutalist]: `
         Recipe: Neo-Brutalist
-        - Colors: Neon accents on stark white/black backgrounds.
-        - Layout: Thick 2px-4px black borders, graphic numbered sections (01, 02).
-        - Typography: Big bold sans-serifs, marquee animations.
-        - Vibe: Innovative, unconventional, high-energy.
-    `,
+        - Colors: Neon accents on stark white/black. Thick 2-4px black borders.
+        - Typography: Big bold sans-serifs, marquee animations.`,
     [VisualStyle.Cyberpunk]: `
         Recipe: Cyberpunk / High-Tech
-        - Colors: Neon pinks, cyans, and deep purples on pitch black.
-        - Details: Glitch effects, scanline overlays, glowing text.
-        - Layout: Future-focused, asymmetric HUDs, data-heavy overlays.
-    `,
+        - Colors: Neon pinks, cyans, deep purples on pitch black. Glitch effects, glowing text.
+        - Layout: Future-focused, asymmetric HUDs, data-heavy overlays.`,
     [VisualStyle.Playful]: `
         Recipe: Playful & Vibrant
-        - Colors: Saturated, energetic palettes (orange, teal, yellow).
-        - Typography: Bouncy type, rounded fonts.
-        - Layout: Organic shapes, overlapping illustrations, big buttons.
-        - Vibe: Fun, approachable, high-energy.
-    `,
+        - Colors: Saturated, energetic palettes (orange, teal, yellow). Big rounded buttons.
+        - Vibe: Fun, approachable, high-energy.`,
     [VisualStyle.Vintage]: `
         Recipe: Vintage & Retro
         - Colors: Sepia tones, muted earth colors, grain textures.
-        - Typography: Slab serifs, display scripts.
-        - Layout: Traditional print-inspired layouts, paper textures.
-    `,
+        - Typography: Slab serifs, display scripts. Traditional print layouts.`,
     [VisualStyle.Glassmorphism]: `
         Recipe: Modern Glassmorphism
-        - Details: Multi-layered glass surfaces, frosted glass effects.
-        - Colors: Pastel gradients behind semi-transparent cards.
-        - Layout: Floating elements with soft drop shadows.
-    `
+        - Details: Multi-layered glass surfaces, frosted glass, pastel gradients.
+        - Layout: Floating elements with soft drop shadows.`,
 };
 
-export const generateHtmlFromPrompt = async (prompt: string, style?: VisualStyle): Promise<{ html: string; css: string }> => {
-    const recipe = style ? STYLE_RECIPES[style] : "";
-    const systemInstruction = `You are a Lead Product Designer. 
-Convert UI prompts into single, clean, accessible, and responsive HTML components using Tailwind CSS.
+// ─── SHARED RULES ─────────────────────────────────────────────────────────────
 
-STYLE GUIDELINES:
-${recipe}
-
-GENERAL PRINCIPLES:
-${UI_UX_PRO_MAX_RULES}`;
-
-    const userPrompt = `Convert this UI prompt into a single, clean, accessible, and responsive HTML snippet using Tailwind CSS.
-**PROMPT:** ${prompt}
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed (e.g., keyframes, custom classes).
-CRITICAL MANDATORY FOOTER: Generate a COMPLETE webpage with a <header>, <main> body with substantive sections, and a full <footer>. NEVER leave out the footer or use placeholder comments like "<!-- content -->".`;
-
-    try {
-        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
-        return { html, css };
-    } catch (error) {
-        console.error("Error generating HTML:", error);
-        throw error;
-    }
-};
-
-export const modifyHtml = async (originalHtml: string, modifications: string, style: VisualStyle): Promise<{ html: string; css: string }> => {
-    const safeHtml = safeHtmlTruncate(originalHtml, HTML_CONTEXT_CHARS);
-    const systemInstruction = "You are an expert UI developer specializing in design system migration and restyling.\n" + UI_UX_PRO_MAX_RULES;
-    const userPrompt = `
-You are tasked with redesigning and remixing the following "Original HTML" into a entirely new visual language.
-Base your redesign on the target visual style: "${style}".
-Also apply these specific user modification instructions: "${modifications || 'Completely re-imagine the design while keeping the core content/functionality.'}"
-
-Requirements:
-- Preserve the core content and semantic structure (links, text, images, forms).
-- Do NOT just tweak colors. We want a completely new layout pattern, typography scale, and aesthetic feel mapping to the new style.
-- Apply completely new Tailwind CSS classes.
-- Ensure responsiveness (mobile-first) and accessibility improve.
-- Replace any generic visual placeholders with better appropriate stylized blocks.
-
-ORIGINAL HTML:
-${safeHtml}
-
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the FULL, COMPLETE, AND FULLY RESTYLED raw HTML webpage code. 
-CRITICAL MANDATORY FOOTER: DO NOT return partial snippets, DO NOT summarize or shorten the page, and DO NOT use placeholder comments like \`<!-- rest of items -->\`. You MUST write out the ENTIRE page structure, including ALL middle sections, the FULL <main> body, and the COMPLETE <footer>.
-The 'css' field should contain any custom CSS needed.
+const UI_UX_PRO_MAX_RULES = `
+CRITICAL UI/UX RULES:
+1. COMPLETE HTML: Always output a COMPLETE, self-contained HTML document from <!DOCTYPE html> to </html>.
+2. FOOTER MANDATORY: EVERY page MUST have a populated <footer> section. Never omit it.
+3. BODY CONTENT: Ensure <body> contains all sections: nav/header, main content, AND footer.
+4. SCROLLABILITY: Never use 'h-screen' or 'overflow-hidden' on root elements.
+5. TOUCH TARGETS: All interactive elements must be at least 44x44px.
+6. CONTRAST: Maintain >=4.5:1 text contrast.
+7. RESPONSIVE: Use Tailwind mobile-first breakpoints (sm:, md:, lg:).
+8. NO GENERIC GRADIENTS: Use layered radial backgrounds for depth.
+9. COMPLETENESS CHECK: Before finishing, verify: opening tags have closing tags, footer exists, </body></html> are present.
 `;
 
-    try {
-        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
-        return { html, css };
-    } catch (error) {
-        console.error("Error modifying HTML:", error);
-        throw error;
+const FULL_PAGE_SYSTEM = `You are a Lead Product Designer and Frontend Engineer.
+Convert UI prompts into COMPLETE, production-ready, self-contained HTML documents.
+
+MANDATORY STRUCTURE — every response MUST contain ALL of these sections:
+1. <!DOCTYPE html><html> ... </html> — full document
+2. <head> with Tailwind CDN, meta tags, title
+3. <body> with:
+   a. Navigation/header
+   b. Main content sections (hero, features, etc.)
+   c. **FOOTER** — always present, always populated with links, copyright, contact info
+4. Closing </body></html>
+
+${UI_UX_PRO_MAX_RULES}`;
+
+// ─── PUBLIC API ───────────────────────────────────────────────────────────────
+
+export const enhancePrompt = async (userInput: string, style: VisualStyle): Promise<string> => {
+    const recipe = STYLE_RECIPES[style] || '';
+    const systemInstruction = `You are an expert UI/UX designer and prompt engineer.
+Expand simple UI descriptions into rich, detailed, structured prompts.
+Style foundation: ${recipe}`;
+
+    const prompt = `
+The user wants a UI for: "${userInput}"
+The desired visual style is: "${style}"
+
+Generate a detailed prompt with sections for:
+- ## Overall Vibe & Style
+- ## Color Palette
+- ## Typography
+- ## Layout & Composition
+- ## Key UI Components
+- ## Iconography
+- ## Micro-interactions & Animations (Subtle)
+
+Output ONLY the generated prompt text.`;
+
+    const response = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: prompt,
+        config: {
+            systemInstruction,
+            maxOutputTokens: 8192,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        },
+    });
+
+    return response.text || '';
+};
+
+export const generateImagePreview = async (prompt: string): Promise<string> => {
+    const imagePrompt = `A high-fidelity UI mockup for a web/mobile application. UI design, UX, user interface.\n\n${prompt}`;
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts: [{ text: imagePrompt }] },
+    });
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
     }
+    throw new Error('No image was generated.');
+};
+
+export const generateHtmlFromPrompt = async (
+    prompt: string,
+    style?: VisualStyle,
+): Promise<{ html: string; css: string }> => {
+    const recipe = style ? STYLE_RECIPES[style] : '';
+    const system = `${FULL_PAGE_SYSTEM}\n\nSTYLE GUIDELINES:\n${recipe}`;
+    const userPrompt = `Convert this UI prompt into a COMPLETE, self-contained HTML document using Tailwind CSS.
+
+PROMPT: ${prompt}
+
+REQUIREMENTS:
+- Full <!DOCTYPE html> to </html> document
+- Include Tailwind CDN in <head>
+- Navigation, all main content sections, AND a complete footer
+- Return JSON: { "html": "...", "css": "..." }`;
+
+    return generateWithContinuation(userPrompt, system, `UI page: ${prompt.slice(0, 100)}`);
+};
+
+export const modifyHtml = async (
+    originalHtml: string,
+    styleHtml: string,
+): Promise<{ html: string; css: string }> => {
+    const system = `You are an expert UI developer specializing in design system migration.
+Re-style HTML while preserving all content and structure.
+
+${FULL_PAGE_SYSTEM}
+
+CRITICAL: The output MUST be a complete HTML document including:
+- All original content sections
+- Navigation preserved from original
+- A COMPLETE footer section (do not omit it)
+- Closing </body></html>`;
+
+    const userPrompt = `Re-style the "Original HTML" using the design language from "Style Reference HTML".
+
+ORIGINAL HTML:
+${safeHtmlTruncate(originalHtml, 25000)}
+
+STYLE REFERENCE:
+${safeHtmlTruncate(styleHtml, 25000)}
+
+REQUIREMENTS:
+- Preserve ALL content from the original — do not truncate any sections
+- Apply styles from the reference
+- Keep the complete page structure including navigation and footer
+- The footer must be fully populated (links, copyright, social icons)
+- Return JSON: { "html": "...", "css": "..." }`;
+
+    return generateWithContinuation(
+        userPrompt,
+        system,
+        'HTML remix: apply style reference to original content',
+        0.15,
+    );
 };
 
 export const generateBlueprint = async (prompt: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = "You are an expert UX designer. Convert UI prompts into low-fidelity, structural wireframes/blueprints using HTML and Tailwind CSS. Focus on layout, hierarchy, and content placement. Use a grayscale palette, simple boxes, and placeholder text (Lorem Ipsum). Avoid high-fidelity styles, images, or complex colors.\n" + UI_UX_PRO_MAX_RULES;
-    const userPrompt = `Convert this UI prompt into a clean, structural wireframe/blueprint using HTML and Tailwind CSS.
-**PROMPT:** ${prompt}
-Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML code (no markdown fences). The 'css' field should contain any custom CSS needed.
-CRITICAL MANDATORY FOOTER: Generate a FULL page outline including a footer.`;
+    const system = `You are an expert UX designer creating low-fidelity wireframes.
+Use HTML and Tailwind CSS. Grayscale palette, simple boxes, placeholder text.
+${FULL_PAGE_SYSTEM}`;
 
-    try {
-        const { html, css } = await generateWithContinuation(systemInstruction, userPrompt, undefined, undefined, 0.5);
-        return { html, css };
-    } catch (error) {
-        console.error("Error generating blueprint:", error);
-        throw error;
-    }
+    const userPrompt = `Create a wireframe/blueprint for: ${prompt}
+
+Requirements:
+- Complete HTML document with all sections
+- Include a footer wireframe
+- Return JSON: { "html": "...", "css": "..." }`;
+
+    return generateWithContinuation(userPrompt, system, `Blueprint: ${prompt.slice(0, 80)}`);
 };
 
-export const generateFromWireframe = async (base64Image: string): Promise<{ html: string; css: string }> => {
-    const systemInstruction = `You are an expert UI/UX designer and Frontend Developer. Your mission is to transform a low-fidelity wireframe into a beautiful, high-fidelity, production-ready UI using HTML and Tailwind CSS.
+export const generateFromWireframe = async (
+    base64Image: string,
+): Promise<{ html: string; css: string }> => {
+    const system = `You are an expert UI/UX designer transforming wireframes into high-fidelity UIs.
+${FULL_PAGE_SYSTEM}
 
-VISUAL REASONING PROTOCOL:
-1. INTERPRET STRUCTURE: Analyze the hand-drawn or digital wireframe to understand the intended layout, hierarchy, and navigation flow.
-2. IDENTIFY COMPONENTS: Recognize UI elements like buttons, inputs, cards, and sections even if they are roughly sketched.
-3. ENHANCE FIDELITY: Replace generic placeholders (like boxes with "IMAGE" or "TEXT") with appropriate, realistic content and high-quality placeholder images (e.g., using picsum.photos).
-4. APPLY MODERN DESIGN: Do not just make a gray box. Apply modern UI/UX principles, beautiful color palettes, typography, shadows, and spacing. Make it look like a premium product.
-
-CRITICAL GUIDELINES:
-1. RESPONSIVE DESIGN: Ensure the output is fully responsive using Tailwind's mobile-first breakpoints (sm:, md:, lg:).
-2. OUTPUT FORMAT: Return a JSON object with 'html' and 'css' fields. The 'html' field should contain the raw HTML content. The 'css' field should contain any custom CSS needed.
-3. EXHAUSTIVE GENERATION & MANDATORY FOOTER: Even if the wireframe skips details, you must generate a full, complete webpage containing a sensible <header>, comprehensive <main> content sections, and a complete <footer>. Do NOT truncate or use comment placeholders.
-
-${UI_UX_PRO_MAX_RULES}`;
+VISUAL REASONING:
+1. Analyze structure, hierarchy, and navigation flow from the wireframe.
+2. Replace placeholders with realistic content and images (picsum.photos).
+3. Apply modern design principles. Do NOT output a gray box.
+4. ALWAYS include a complete footer section.`;
 
     const mimeType = getMimeType(base64Image);
     const data = base64Image.split(',')[1] || base64Image;
 
     const parts: any[] = [
-        { text: "Carefully analyze this wireframe. Identify the intended layout and components. Then, transform it into a high-fidelity, beautiful UI using HTML and Tailwind CSS. Add realistic placeholder content, modern styling, and ensure it is fully responsive." },
         {
-            inlineData: {
-                data: data,
-                mimeType: mimeType
-            }
-        }
+            text: `Transform this wireframe into a high-fidelity, complete HTML page with Tailwind CSS.
+Include nav, all content sections, AND a complete footer.
+Return JSON: { "html": "...", "css": "..." }`,
+        },
+        { inlineData: { data, mimeType } },
     ];
 
-    try {
-        const { html, css } = await generateWithContinuation(systemInstruction, "Wireframe interpretation", parts, undefined, 0.5);
-        return { html, css };
-    } catch (error) {
-        console.error("Error generating from wireframe:", error);
-        throw error;
+    const response = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: { parts },
+        config: {
+            systemInstruction: system,
+            maxOutputTokens: MAX_TOKENS,
+            temperature: 0.2,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    html: { type: Type.STRING },
+                    css:  { type: Type.STRING },
+                },
+                required: ['html', 'css'],
+            },
+        },
+    });
+
+    const rawText = response.text ?? '';
+    let parsed = extractJson(rawText);
+    if (!parsed) throw new Error('Unparseable wireframe response. Please try again.');
+
+    if (!isHtmlComplete(parsed.html)) {
+        try {
+            const cont = await requestContinuation(parsed.html, 'wireframe-to-UI');
+            parsed.html = stitchContinuation(parsed.html, cont);
+        } catch { /* ignore */ }
+        if (!isHtmlComplete(parsed.html)) parsed.html = forceCloseHtml(parsed.html);
     }
+
+    return { html: cleanHtml(parsed.html), css: parsed.css || '' };
 };
 
 export const generateDesignSystem = async (query: string): Promise<any> => {
-    try {
-        const response = await fetch('/api/design-system', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query })
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to generate design system: ${errorText}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error("Error generating design system:", error);
-        throw error;
+    const response = await fetch('/api/design-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+    });
+    if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Failed to generate design system: ${err}`);
     }
+    return response.json();
 };
 
 export const analyzeHtml = async (html: string): Promise<AnalysisResult> => {
-    const systemInstruction = `You are a Senior Design Engineer and Visual Architect. 
-    Your task is to analyze the provided HTML code and extract its Design DNA.
-    Identify design tokens (colors, typography, spacing patterns), structural architecture, and exactly what HTML semantic elements, custom tags, or schemas are used to compose the site.
-    Also, identify any potential runtime/accessibility issues and visual/layout issues.
-    
-    Be extremely precise with hex codes and Tailwind patterns.
-    Identify the underlying layout type (e.g., Bento, Holy Grail, Dashboard, F-Pattern) and structural schema.`;
+    const system = `You are a Senior Design Engineer. Analyze HTML and extract its Design DNA:
+design tokens, structural architecture, semantic elements, and issues.`;
 
-    const userPrompt = `Analyze this HTML and provide a detailed Design DNA report in JSON format.
-    
-    HTML:
-    ${safeHtmlTruncate(html, 15000)}
-    
-    Return a JSON object following this schema:
-    {
-        "designTokens": {
-            "colors": ["#hex", "text-gray-900", ...],
-            "fonts": ["Inter", "serif", ...],
-            "spacing": "strict 4px rhythm",
-            "radius": "xl (12px)"
-        },
-        "architecture": {
-            "layout": "Bento Grid with sticky sidebar",
-            "components": ["Card", "Badge", "HeroSection"],
-            "sections": ["Navigation", "Hero", "Features"],
-            "schema": ["<main>", "<article>", "<custom-header>", "role='navigation'"]
-        },
-        "visualSummary": "A clean, modern technical dashboard using high-contrast typography and subtle glassmorphism.",
-        "issues": {
-            "runtime": ["Missing alt attributes on hero images", "Contrast ratio fails on secondary buttons"],
-            "visual": ["Inconsistent padding on mobile view", "Text-overflow not handled in cards"]
-        }
-    }`;
+    const prompt = `Analyze this HTML and return a Design DNA JSON report.
 
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: userPrompt,
-            config: { 
-                systemInstruction,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        designTokens: {
-                            type: Type.OBJECT,
-                            properties: {
-                                colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                fonts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                spacing: { type: Type.STRING },
-                                radius: { type: Type.STRING }
-                            },
-                            required: ['colors', 'fonts', 'spacing', 'radius']
+HTML:
+${safeHtmlTruncate(html, 15000)}
+
+Return JSON following this schema:
+{
+  "designTokens": {
+    "colors": ["#hex", ...],
+    "fonts": ["Inter", ...],
+    "spacing": "strict 4px rhythm",
+    "radius": "xl (12px)"
+  },
+  "architecture": {
+    "layout": "Bento Grid with sticky sidebar",
+    "components": ["Card", "Badge", ...],
+    "sections": ["Navigation", "Hero", "Features", "Footer"],
+    "schema": ["<main>", "<article>", "role='navigation'"]
+  },
+  "visualSummary": "A clean modern dashboard...",
+  "issues": {
+    "runtime": ["Missing alt attributes on hero images"],
+    "visual": ["Inconsistent padding on mobile"]
+  }
+}`;
+
+    const response = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: prompt,
+        config: {
+            systemInstruction: system,
+            maxOutputTokens: 8192,
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    designTokens: {
+                        type: Type.OBJECT,
+                        properties: {
+                            colors:  { type: Type.ARRAY, items: { type: Type.STRING } },
+                            fonts:   { type: Type.ARRAY, items: { type: Type.STRING } },
+                            spacing: { type: Type.STRING },
+                            radius:  { type: Type.STRING },
                         },
-                        architecture: {
-                            type: Type.OBJECT,
-                            properties: {
-                                layout: { type: Type.STRING },
-                                components: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                sections: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                schema: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Detected HTML tags, custom elements, ARIA roles, or schema.org microdata" }
-                            },
-                            required: ['layout', 'components', 'sections', 'schema']
-                        },
-                        visualSummary: { type: Type.STRING },
-                        issues: {
-                            type: Type.OBJECT,
-                            properties: {
-                                runtime: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Runtime, accessibility, or best practice issues" },
-                                visual: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Visual, layout, or contrast issues" }
-                            },
-                            required: ['runtime', 'visual']
-                        }
+                        required: ['colors', 'fonts', 'spacing', 'radius'],
                     },
-                    required: ['designTokens', 'architecture', 'visualSummary']
-                }
-            }
-        });
-        
-        return JSON.parse(response.text || '{}') as AnalysisResult;
-    } catch (error) {
-        console.error("Error analyzing HTML:", error);
-        throw error;
-    }
+                    architecture: {
+                        type: Type.OBJECT,
+                        properties: {
+                            layout:     { type: Type.STRING },
+                            components: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            sections:   { type: Type.ARRAY, items: { type: Type.STRING } },
+                            schema:     { type: Type.ARRAY, items: { type: Type.STRING } },
+                        },
+                        required: ['layout', 'components', 'sections', 'schema'],
+                    },
+                    visualSummary: { type: Type.STRING },
+                    issues: {
+                        type: Type.OBJECT,
+                        properties: {
+                            runtime: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            visual:  { type: Type.ARRAY, items: { type: Type.STRING } },
+                        },
+                        required: ['runtime', 'visual'],
+                    },
+                },
+                required: ['designTokens', 'architecture', 'visualSummary'],
+            },
+        },
+    });
+
+    return JSON.parse(response.text || '{}') as AnalysisResult;
 };
 
-export const cloneWebsite = async (url: string, screenshots: string[] = [], pastedContent: string = ''): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
+export const cloneWebsite = async (
+    url: string,
+    screenshots: string[] = [],
+    pastedContent: string = '',
+): Promise<{ html: string; css: string; sources: GroundingSource[] }> => {
+    // ── 1. Scrape ─────────────────────────────────────────────────────────────
     let scrapedData: { html?: string; title?: string } = {};
-
     if (url) {
         try {
-            console.log(`Scraping URL: ${url}`);
-            const scrapeResponse = await fetch('/api/scrape', {
+            const res = await fetch('/api/scrape', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
+                body: JSON.stringify({ url }),
             });
-            if (scrapeResponse.ok) {
-                const data = await scrapeResponse.json();
-                scrapedData = { html: data.html, title: data.title };
-                console.log('Scraping successful');
-            } else {
-                console.warn('[cloneWebsite] Scraper returned', scrapeResponse.status);
-            }
+            if (res.ok) scrapedData = await res.json();
         } catch (err) {
-            console.warn('[cloneWebsite] Scraper failed, continuing without HTML context:', err);
+            console.warn('[cloneWebsite] Scraper failed:', err);
         }
     }
 
-    const systemInstruction = `You are an expert Web Architect and Frontend Reconstructor.
+    // ── 2. Build system + prompt ──────────────────────────────────────────────
+    const system = `You are an expert Web Architect and Frontend Reconstructor.
+Reproduce the website as a COMPLETE, self-contained HTML file using Tailwind CSS.
 
-Your task is to reproduce a website as a single, self-contained HTML file using Tailwind CSS.
-Focus strictly on the semantic HTML structure and content provided.
+${FULL_PAGE_SYSTEM}
 
-RECONSTRUCTION PROTOCOL:
-1. SEMANTIC STRUCTURE: Use the provided HTML structure to identify key sections.
-2. TAILWIND ADAPTATION: Map the layout and typography to Tailwind CSS classes.
-3. CONTENT FIDELITY: Preserve all text content exactly as it appears in the source.
-
-CRITICAL MANDATORY RULES (DO NOT IGNORE):
-1. Return ONLY valid JSON: { "html": "...", "css": "..." }.
-2. Use semantic HTML5 elements.
-3. The result MUST be vertically scrollable.
-4. DO NOT SUMMARIZE OR SHORTEN THE HTML. You MUST generate the ENTIRE webpage, including ALL middle sections, ALL products/features/testimonials from the source, and a COMPLETE <footer>.
-5. Never use placeholders like "<!-- rest of the page -->" or "<!-- additional items here -->". Write out EVERY single item.
-6. The user-provided HTML and text are the primary sources of truth. If it's in the source HTML, it MUST be in your generated HTML.
-`;
+RECONSTRUCTION RULES:
+1. Use the provided HTML to identify all sections — nav, hero, features, pricing, footer, etc.
+2. Map the layout faithfully with Tailwind classes.
+3. Preserve all text content exactly.
+4. FOOTER IS MANDATORY: every clone MUST have a complete <footer> with links, copyright, socials.
+5. Close ALL tags. Output must end with </footer></body></html>.`;
 
     let userPrompt = url
-        ? `Clone the website at ${url}. Use the provided HTML and text context to reconstruct the page with Tailwind CSS.`
-        : `Reconstruct the UI shown in the provided materials as a high-fidelity Tailwind CSS page.`;
+        ? `Clone the website at ${url}.`
+        : `Reconstruct the UI from the provided materials.`;
 
-    if (scrapedData.title) {
-        userPrompt += `\nPage title: "${scrapedData.title}"`;
-    }
-
+    if (scrapedData.title) userPrompt += `\nPage title: "${scrapedData.title}"`;
     if (scrapedData.html) {
-        const safeHtml = safeHtmlTruncate(scrapedData.html, HTML_CONTEXT_CHARS);
-        userPrompt += `\n\nTarget HTML Content:\n${safeHtml}`;
+        userPrompt += `\n\nTarget HTML:\n${safeHtmlTruncate(scrapedData.html, HTML_CONTEXT_CHARS)}`;
     }
-
     if (pastedContent.trim()) {
-        userPrompt += `\n\nUser-provided HTML/Text Content:\n${pastedContent.trim()}`;
+        userPrompt += `\n\nUser-provided HTML:\n${pastedContent.trim()}`;
+    }
+    userPrompt += `
+
+CRITICAL REQUIREMENTS:
+- Complete HTML document from <!DOCTYPE html> to </html>
+- Include ALL page sections visible in the source
+- Populated footer with navigation links, copyright text, social icons
+- No truncation — output the ENTIRE page
+- Return JSON: { "html": "...", "css": "..." }`;
+
+    // ── 3. Build multimodal parts ─────────────────────────────────────────────
+    const parts: any[] = [{ text: userPrompt }];
+    for (const shot of screenshots) {
+        const raw = stripDataUriPrefix(shot);
+        if (raw) parts.push({ inlineData: { data: raw, mimeType: 'image/png' } });
     }
 
-    userPrompt += `\n\nReturn ONLY a JSON object: { "html": "...", "css": "..." }
-CRITICAL MANDATORY FOOTER: The page must be exhaustive and have a complete footer.`;
+    // ── 4. Generation + continuation ─────────────────────────────────────────
+    const firstResponse = await ai.models.generateContent({
+        model: MAIN_MODEL,
+        contents: { role: 'user', parts },
+        config: {
+            systemInstruction: system,
+            tools: [{ googleSearch: {} }],
+            maxOutputTokens: MAX_TOKENS,
+            temperature: 0.1,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    html: { type: Type.STRING },
+                    css:  { type: Type.STRING },
+                },
+                required: ['html', 'css'],
+            },
+        },
+    });
 
-    const parts: any[] = [{ text: userPrompt }];
+    const rawText = firstResponse.text ?? '';
+    let parsed = extractJson(rawText);
 
-    if (screenshots.length > 0) {
-        for (const shot of screenshots) {
-            const rawB64 = stripDataUriPrefix(shot);
-            if (rawB64) {
-                parts.push({ inlineData: { data: rawB64, mimeType: 'image/png' } });
+    if (!parsed) {
+        throw new Error('Gemini returned an unparseable response. Please try again.');
+    }
+
+    // Continuation pass
+    if (!isHtmlComplete(parsed.html)) {
+        console.warn('[cloneWebsite] HTML truncated — running continuation pass...');
+        try {
+            const cont = await requestContinuation(
+                parsed.html,
+                url ? `Clone of ${url}` : 'Website clone',
+            );
+            if (cont.trim().length > 50) {
+                parsed.html = stitchContinuation(parsed.html, cont);
             }
+        } catch (err) {
+            console.error('[cloneWebsite] Continuation failed:', err);
+        }
+        if (!isHtmlComplete(parsed.html)) {
+            parsed.html = forceCloseHtml(parsed.html);
         }
     }
 
-    try {
-        const tools = [{ googleSearch: {} }];
-        const { html, css, responseObj } = await generateWithContinuation(systemInstruction, userPrompt, parts, tools, 0.15);
-        const sources = responseObj.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-        return { html, css, sources };
-    } catch (error) {
-        console.error("Error cloning website:", error);
-        throw error;
-    }
+    const sources = firstResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    return { html: cleanHtml(parsed.html), css: parsed.css || '', sources };
 };
