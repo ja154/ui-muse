@@ -6,7 +6,7 @@ const ThemeToggle: React.FC = () => {
   return (
     <button
       title="Theme locked: GHOST_OS DARK"
-      className="px-3 py-1.5 text-[10px] font-mono tracking-widest uppercase border border-brand-border text-brand-text-dim hover:border-brand-primary hover:text-brand-primary transition-all duration-200"
+      className="px-3 py-1.5 text-xs font-mono tracking-widest uppercase border border-brand-border text-brand-text-dim hover:border-brand-primary hover:text-brand-primary transition-all duration-200"
       style={{ fontFamily: 'Share Tech Mono, monospace' }}
     >
       <span className="status-online mr-2" />
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
               className="glow-text"
               style={{
                 fontFamily: 'Orbitron, sans-serif',
-                fontSize: '15px',
+                fontSize: '20px',
                 fontWeight: 700,
                 letterSpacing: '0.12em',
               }}
@@ -84,21 +84,14 @@ const Header: React.FC = () => {
             </span>
             <span style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '9px',
-              color: 'var(--brand-text-dim)',
-              letterSpacing: '0.08em',
-              paddingLeft: '4px',
-              borderLeft: '1px solid var(--brand-border)',
+              fontSize: '12px',
             }}>
               v2.0.1
             </span>
           </div>
           <span style={{
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '9px',
-            color: 'var(--brand-text-dim)',
-            letterSpacing: '0.2em',
-            marginTop: '3px',
+            fontSize: '13px',
           }}>
             AI_POWERED_UI_BUILDER
           </span>
@@ -113,18 +106,14 @@ const Header: React.FC = () => {
             <span className="status-online" />
             <span style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '10px',
-              color: 'var(--brand-primary)',
-              letterSpacing: '0.1em',
+              fontSize: '13px',
             }}>
               SYS_ONLINE
             </span>
           </div>
           <div style={{
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '10px',
-            color: 'var(--brand-text-dim)',
-            letterSpacing: '0.08em',
+            fontSize: '12px',
           }}>
             GEMINI_3.1_PRO
           </div>
@@ -146,9 +135,7 @@ const Header: React.FC = () => {
           </svg>
           <span style={{
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '11px',
-            color: 'var(--brand-primary)',
-            letterSpacing: '0.15em',
+            fontSize: '14px',
           }}>
             {timeStr}
           </span>
@@ -160,9 +147,7 @@ const Header: React.FC = () => {
         <div className="hidden sm:flex items-center"
           style={{
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '10px',
-            letterSpacing: '0.15em',
-            color: 'var(--brand-bg)',
+            fontSize: '13px',
             background: 'var(--brand-primary)',
             padding: '5px 12px',
             fontWeight: 700,

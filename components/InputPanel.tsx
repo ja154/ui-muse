@@ -47,8 +47,7 @@ const SectionLabel: React.FC<{ num: string; label: string }> = ({ num, label }) 
   <div className="flex items-center gap-3 mb-3">
     <span style={{
       fontFamily: 'Share Tech Mono, monospace',
-      fontSize: '9px',
-      color: 'var(--brand-primary)',
+      fontSize: '12px',
       background: 'rgba(0,255,136,0.1)',
       border: '1px solid rgba(0,255,136,0.25)',
       padding: '2px 6px',
@@ -58,10 +57,7 @@ const SectionLabel: React.FC<{ num: string; label: string }> = ({ num, label }) 
     </span>
     <span style={{
       fontFamily: 'Share Tech Mono, monospace',
-      fontSize: '10px',
-      color: 'var(--brand-text-dim)',
-      letterSpacing: '0.2em',
-      textTransform: 'uppercase',
+      fontSize: '13px',
     }}>
       {label}
     </span>
@@ -135,10 +131,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
   const labelStyle = {
     fontFamily: 'Share Tech Mono, monospace',
-    fontSize: '10px',
-    color: 'var(--brand-text-dim)',
-    letterSpacing: '0.2em',
-    textTransform: 'uppercase' as const,
+    fontSize: '12px',
     marginBottom: '6px',
     display: 'block',
   };
@@ -149,8 +142,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     border: '1px solid var(--brand-border)',
     color: 'var(--brand-text)',
     fontFamily: 'Share Tech Mono, monospace',
-    fontSize: '12px',
-    padding: '10px 12px',
+    fontSize: '14px',
     outline: 'none',
     resize: 'none' as const,
     letterSpacing: '0.03em',
@@ -173,9 +165,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         }}>
           <span style={{
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '9px',
-            color: 'var(--brand-text-dim)',
-            letterSpacing: '0.3em',
+            fontSize: '13px',
           }}>
             ◈ INPUT_MODULE
           </span>
@@ -191,8 +181,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                 onClick={() => setInputMode(tab.mode)}
                 style={{
                   fontFamily: 'Share Tech Mono, monospace',
-                  fontSize: '10px',
-                  letterSpacing: '0.15em',
+                  fontSize: '13px',
                   padding: '10px 14px',
                   minHeight: 40,
                   whiteSpace: 'nowrap',
@@ -243,9 +232,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
               {/* Char counter */}
               <div style={{
                 fontFamily: 'Share Tech Mono, monospace',
-                fontSize: '9px',
-                color: 'var(--brand-text-dim)',
-                textAlign: 'right',
+                fontSize: '11px',
                 marginTop: '4px',
                 letterSpacing: '0.1em',
               }}>
@@ -268,8 +255,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         disabled={isLoading}
                         style={{
                           fontFamily: 'Share Tech Mono, monospace',
-                          fontSize: '10px',
-                          letterSpacing: '0.08em',
+                          fontSize: '12px',
                           padding: '8px 10px',
                           background: isSelected ? 'rgba(0,255,136,0.1)' : 'rgba(0,10,5,0.5)',
                           border: isSelected ? '1px solid var(--brand-primary)' : '1px solid var(--brand-border)',
@@ -284,8 +270,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         }}
                       >
                         <span style={{
-                          fontSize: '9px',
-                          color: isSelected ? 'var(--brand-bg)' : 'var(--brand-text-dim)',
+                          fontSize: '11px',
                           background: isSelected ? 'var(--brand-primary)' : 'rgba(0,255,136,0.07)',
                           padding: '1px 4px',
                           minWidth: 28,
@@ -294,7 +279,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                         }}>
                           {tag}
                         </span>
-                        <span style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                        <span style={{ fontSize: '12px', letterSpacing: '0.05em' }}>
                           {style.toUpperCase()}
                         </span>
                       </button>
@@ -311,9 +296,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             <SectionLabel num="01" label="HTML_INPUT_BUFFER" />
             <div style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '10px',
-              color: 'var(--brand-text-dim)',
-              marginBottom: '8px',
+              fontSize: '12px',
               lineHeight: 1.6,
               letterSpacing: '0.05em',
             }}>
@@ -339,7 +322,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     onClick={() => setHtmlInput(props.currentHtml || '')}
                     style={{
                       fontFamily: 'Share Tech Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       letterSpacing: '0.1em',
                       color: 'var(--brand-primary)',
                       border: '1px solid rgba(0,255,136,0.3)',
@@ -368,7 +351,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                     onClick={() => setCloneHtmlInput(props.currentHtml || '')}
                     style={{
                       fontFamily: 'Share Tech Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       letterSpacing: '0.1em',
                       color: 'var(--brand-primary)',
                       border: '1px solid rgba(0,255,136,0.3)',
@@ -403,8 +386,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                   top: '50%',
                   transform: 'translateY(-50%)',
                   fontFamily: 'Share Tech Mono, monospace',
-                  fontSize: '11px',
-                  color: 'var(--brand-primary)',
+                  fontSize: '14px',
                 }}>
                   ⊹
                 </span>
@@ -467,18 +449,14 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             </div>
             <p style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '11px',
-              color: 'var(--brand-primary)',
-              letterSpacing: '0.15em',
+              fontSize: '14px',
               marginBottom: 8,
             }}>
               CANVAS_EDITOR_ACTIVE
             </p>
             <p style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '10px',
-              color: 'var(--brand-text-dim)',
-              letterSpacing: '0.08em',
+              fontSize: '12px',
               lineHeight: 1.6,
               maxWidth: 200,
             }}>
@@ -502,8 +480,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
               width: '100%',
               padding: '14px',
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '12px',
-              fontWeight: 700,
+              fontSize: '14px',
               letterSpacing: '0.2em',
               background: isGenerateDisabled ? 'rgba(0,255,136,0.04)' : 'var(--brand-primary)',
               color: isGenerateDisabled ? 'var(--brand-text-dim)' : 'var(--brand-bg)',

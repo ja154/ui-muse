@@ -48,8 +48,7 @@ const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources })
     }}>
       <div style={{
         fontFamily: 'Share Tech Mono, monospace',
-        fontSize: '9px',
-        color: 'var(--brand-primary)',
+        fontSize: '12px',
         letterSpacing: '0.2em',
         marginBottom: 8,
       }}>
@@ -64,8 +63,7 @@ const GroundingSources: React.FC<{ sources: GroundingSource[] }> = ({ sources })
           style={{
             display: 'block',
             fontFamily: 'Share Tech Mono, monospace',
-            fontSize: '10px',
-            color: 'var(--brand-secondary)',
+            fontSize: '13px',
             textDecoration: 'none',
             marginBottom: 4,
             letterSpacing: '0.03em',
@@ -197,12 +195,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
         {/* Output module label */}
         <div style={{
           fontFamily: 'Share Tech Mono, monospace',
-          fontSize: '9px',
-          color: 'var(--brand-text-dim)',
-          letterSpacing: '0.25em',
-          marginRight: 12,
-          flexShrink: 0,
-          display: 'none',
+          fontSize: '13px',
         }}
           className="lg:block"
         >
@@ -219,9 +212,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 style={{
                   fontFamily: 'Share Tech Mono, monospace',
-                  fontSize: '10px',
-                  letterSpacing: '0.12em',
-                  padding: '0 14px',
+                  fontSize: '13px',
                   height: 48,
                   whiteSpace: 'nowrap',
                   background: active ? 'rgba(0,255,136,0.07)' : 'transparent',
@@ -299,9 +290,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
               onClick={() => handleCopy(activeTab as any)}
               style={{
                 fontFamily: 'Share Tech Mono, monospace',
-                fontSize: '10px',
-                letterSpacing: '0.1em',
-                padding: '5px 12px',
+                fontSize: '12px',
                 background: copiedStates[activeTab as 'prompt' | 'code' | 'css']
                   ? 'rgba(0,255,136,0.15)'
                   : 'rgba(0,10,5,0.5)',
@@ -346,18 +335,14 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
             <span className="status-online" />
             <span style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '10px',
-              color: 'var(--brand-primary)',
-              letterSpacing: '0.15em',
+              fontSize: '13px',
             }}>
               PROCESSING_REQUEST<span className="animate-blink">_</span>
             </span>
             <div style={{ flex: 1, height: 1, background: 'var(--brand-border)', marginLeft: 8 }} />
             <span style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '9px',
-              color: 'var(--brand-text-dim)',
-              letterSpacing: '0.1em',
+              fontSize: '11px',
             }}>
               GEMINI_3.1_PRO
             </span>
@@ -403,17 +388,14 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
       }}>
         <span style={{
           fontFamily: 'Share Tech Mono, monospace',
-          fontSize: '9px',
-          color: 'var(--brand-text-dim)',
-          letterSpacing: '0.15em',
+          fontSize: '12px',
         }}>
           MODE: {inputMode.toUpperCase()}
         </span>
         <div style={{ width: 1, height: 12, background: 'var(--brand-border)' }} />
         <span style={{
           fontFamily: 'Share Tech Mono, monospace',
-          fontSize: '9px',
-          color: htmlOutput ? 'var(--brand-primary)' : 'var(--brand-text-dim)',
+          fontSize: '12px',
           letterSpacing: '0.12em',
         }}>
           {htmlOutput ? `OUTPUT: ${htmlOutput.length} CHARS` : 'AWAITING_INPUT'}
@@ -423,8 +405,7 @@ const OutputTabs: React.FC<OutputTabsProps> = ({
             <div style={{ width: 1, height: 12, background: 'var(--brand-border)' }} />
             <span style={{
               fontFamily: 'Share Tech Mono, monospace',
-              fontSize: '9px',
-              color: 'var(--brand-warn)',
+              fontSize: '12px',
               letterSpacing: '0.12em',
               animation: 'blink 1s step-end infinite',
             }}>
